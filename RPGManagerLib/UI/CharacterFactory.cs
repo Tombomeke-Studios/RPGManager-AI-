@@ -2,7 +2,6 @@ using RPGManagerLib.Characters.Heroes;
 using RPGManagerLib.Items;
 using RPGManagerLib.Items.Staffs;
 using RPGManagerLib.Items.Weapons.Bows;
-using RPGManagerLib.Items.Weapons.Melee;
 using RPGManagerLib.Items.Weapons.Melee.Axes;
 using RPGManagerLib.Items.Weapons.Melee.Daggers;
 using RPGManagerLib.Items.Weapons.Melee.Spears;
@@ -18,38 +17,47 @@ namespace RPGManagerLib.UI
     public static class CharacterFactory
     {
         /// <summary>
-        /// Creates a new character based on user input.
+        /// Creates a new hero from player input: a name, a class, and (for warriors) a starting loadout.
         /// </summary>
         public static Character CreateCharacter()
         {
-            Console.Clear();
-            Console.WriteLine("--- Create Your Hero ---\n");
+            Ui.Header("Bond a Hero");
+            Ui.Narrate("Somewhere in the ash, a mortal looks up as if someone called their name. Who are they?");
 
-            Console.Write("  Enter your hero's name: ");
-            string? name = Console.ReadLine()?.Trim();
+            string name = Ui.Prompt("Name ");
             if (string.IsNullOrWhiteSpace(name))
             {
                 name = "John";
             }
 
-            Console.WriteLine("\n\n  Choose a class:\n");
-            WriteSelectionLine("1", "Warrior", "frontline fighter, high health, melee weapons");
-            WriteSelectionLine("2", "Mage", "arcane spellcaster, high mana, staff and spells");
-            WriteSelectionLine("3", "Archer", "ranged attacker, balanced stats, bow and quiver");
-
-            Console.Write("\n  > ");
-            string? input = Console.ReadLine()?.Trim().ToLowerInvariant();
-
-            Character character = input switch
+            Ui.Line();
+            Ui.Line("  And what are they?", ConsoleColor.White);
+            int choice = Ui.Choose(new List<string>
             {
-                "1" or "warrior" => CreateWarrior(name),
-                "2" or "mage" => CreateMage(name),
-                "3" or "archer" => CreateArcher(name),
+                "Warrior — tough and direct. Builds Fury in a fight and spends it on crushing blows. Soldiers respect soldiers.",
+                "Mage — fragile, devastating. Spells hit elemental weaknesses; Mana carries between fights. The old ruins answer to magic.",
+                "Archer — quick and precise. Critical hits, poison, and a quiver that sets the budget for every fight. Sees what others miss."
+            });
+
+            Character character = choice switch
+            {
+                1 => CreateMage(name),
+                2 => CreateArcher(name),
                 _ => CreateWarrior(name)
             };
 
-            Console.WriteLine($"\n\n  Hero {character.Name} created.");
+            Ui.Line();
+            Ui.Good($"{character.Name} the {character.CharacterType} answers the call.");
             return character;
+        }
+
+        /// <summary>
+        /// Gives a new hero the potions they start with.
+        /// </summary>
+        public static void GiveStartingSupplies(Character hero)
+        {
+            hero.AddSupply(SupplyCatalog.HealingPotion, 2);
+            if (hero is Mage) hero.AddSupply(SupplyCatalog.ManaDraught, 1);
         }
 
         /// <summary>

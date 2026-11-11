@@ -77,31 +77,6 @@ public class UiTests
         Assert.Single(options);
     }
 
-    [Fact]
-    public void GameMenu_PrivateExploreAndFight_WhenNoCharacter_WriteSelectionMessage()
-    {
-        SetGameMenuState(new List<Character>(), null);
-
-        var exploreOutput = ConsoleTestHelper.CaptureOutput(() => InvokeGameMenuMethod("Explore"));
-        var fightOutput = ConsoleTestHelper.CaptureOutput(() => InvokeGameMenuMethod("Fight"));
-
-        Assert.Contains("Select a character first", exploreOutput);
-        Assert.Contains("Select a character first", fightOutput);
-    }
-
-    private static void SetGameMenuState(List<Character> characters, Character? current)
-    {
-        var type = typeof(GameMenu);
-        type.GetField("characters", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, characters);
-        type.GetField("currentCharacter", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, current);
-    }
-
-    private static void InvokeGameMenuMethod(string methodName)
-    {
-        var type = typeof(GameMenu);
-        type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, null);
-    }
-
     private static TCharacter InvokeCharacterFactoryCreate<TCharacter>(string methodName, string name)
         where TCharacter : Character
     {

@@ -10,7 +10,6 @@ namespace RPGManagerLib.Saves
     /// </summary>
     public class CharacterSaveData
     {
-        // TODO: Add Level and Experience here when the leveling system replaces the current PowerLevel-only progression.
         /// <summary>
         /// Discriminator describing the concrete character type (e.g., Warrior, Mage).
         /// </summary>
@@ -49,18 +48,28 @@ namespace RPGManagerLib.Saves
 
         public int Gold { get; set; }
 
+        /// <summary>Current level (0 in saves made before levelling existed).</summary>
+        public int Level { get; set; }
+        public int Experience { get; set; }
+        public int Might { get; set; }
+        public int Guard { get; set; }
+        public int Arcana { get; set; }
+        public int Perception { get; set; }
+        public double BonusMaxHealth { get; set; }
+
+        /// <summary>Index of the chosen weapon inside <see cref="Equipables"/>, or -1.</summary>
+        public int EquippedIndex { get; set; } = -1;
+        public Dictionary<string, int> Supplies { get; set; } = new();
+        public List<string> LearnedSkills { get; set; } = new();
+        public string LocationId { get; set; } = "cinders_rest";
+
         public CharacterSaveData() { }
 
         /// <summary>
-        /// Initializes a new instance of the CharacterSaveData class using the specified Character object, capturing
-        /// its properties for saving.
+        /// Captures a character's full state for saving.
         /// </summary>
-        /// <remarks>This constructor handles different character types (Warrior, Mage, Archer) and
-        /// populates the Equipables or Mana properties accordingly. Ensure that the Character object provided is valid
-        /// and contains the necessary data.</remarks>
-        /// <param name="c">The Character object containing the data to be saved, including its name, health, creation date, power
-        /// level, character type, and gold amount.</param>
-        /// <exception cref="Exception">Thrown if an unknown item type is encountered during the conversion of equipable items.</exception>
+        /// <param name="c">The character to snapshot.</param>
+        /// <exception cref="Exception">Thrown if an unknown item type is encountered.</exception>
         public CharacterSaveData(Character c)
         {
             Name = c.Name;
@@ -69,48 +78,37 @@ namespace RPGManagerLib.Saves
             PowerLevel = c.PowerLevel;
             CharacterType = c.CharacterType;
             Gold = c.Gold;
-
-            // TODO: Extend this conversion when full inventory, spellbook, and other per-character systems need persistence.
-            // Helper function to convert list of IEquipable to correct SaveData type
-            List<EquipableSaveData> ConvertEquipables(IEnumerable<IEquipable> items)
-            {
-                return items.Select(item =>
-                {
-                    if (item is Weapon weapon) return (EquipableSaveData)new WeaponSaveData(weapon);
-                    if (item is Quiver quiver) return (EquipableSaveData)new QuiverSaveData(quiver);
-                    throw new Exception($"Unknown item type: {item.GetType().Name}");
-                }).ToList();
-            }
-
-            if (c is Warrior w)
-            {
-                Equipables = ConvertEquipables(w.Weapons);
-            }
-            else if (c is Mage m)
-            {
-                Equipables = ConvertEquipables(m.Weapons);
-                Mana = m.Mana;
-            }
-            else if (c is Archer a)
-            {
-                Equipables = ConvertEquipables(a.Weapons);
-            }
+            Mana = c.Mana;
+            Level = c.Level;
+            Experience = c.Experience;
+            Might = c.Might;
+            Guard = c.Guard;
+            Arcana = c.Arcana;
+            Perception = c.Perception;
+            BonusMaxHealth = c.BonusMaxHealth;
+            Supplies = new Dictionary<string, int>(c.Supplies);
+            LearnedSkills = new List<string>(c.LearnedSkills);
+            LocationId = c.LocationId;
+            Equipables = c.Weapons.Select(FromEquipable).ToList();
+            EquippedIndex = c.EquippedWeapon == null ? -1 : c.Weapons.IndexOf(c.EquippedWeapon);
         }
 
+        /// <summary>Converts one item to its matching save data type.</summary>
+        /// <exception cref="Exception">Thrown for an item type with no save data.</exception>
+        public static EquipableSaveData FromEquipable(IEquipable item) => item switch
+        {
+            Weapon weapon => new WeaponSaveData(weapon),
+            Quiver quiver => new QuiverSaveData(quiver),
+            _ => throw new Exception($"Unknown item type: {item.GetType().Name}")
+        };
+
         /// <summary>
-        /// Creates a new character instance based on the current save data, initializing its properties according to
-        /// the specified character type.
+        /// Rebuilds a character from this save data.
         /// </summary>
-        /// <remarks>The method sets the character's health, creation date, power level, and gold. For
-        /// Warrior and Archer types, it populates the weapons collection from the equipables in the save data. For Mage
-        /// characters, it sets the mana value. This method is typically used to reconstruct a character from saved
-        /// data.</remarks>
-        /// <returns>A new instance of the Character class, which may be a Warrior, Archer, or Mage, populated with the current
-        /// save data's attributes.</returns>
-        /// <exception cref="Exception">Thrown if the character type specified in the save data is not recognized.</exception>
+        /// <returns>A Warrior, Archer or Mage with the saved state.</returns>
+        /// <exception cref="Exception">Thrown if the character type is not recognized.</exception>
         public Character ToCharacter()
         {
-            // TODO: Restore Level/Experience and other new subsystems here as CharacterSaveData grows.
             Character c = CharacterType switch
             {
                 "Warrior" => new Warrior(Name),
@@ -119,28 +117,36 @@ namespace RPGManagerLib.Saves
                 _ => throw new Exception($"Unknown character type: {CharacterType}")
             };
 
-            c.Health = this.Health;
-            c.CreationDate = this.CreationDate;
-            c.PowerLevel = this.PowerLevel;
-            c.Gold = this.Gold;
+            c.CreationDate = CreationDate;
+            c.Gold = Gold;
 
-            if (c is Warrior w)
+            // Saves from before levelling have Level 0: keep the class's level-1 stats.
+            if (Level > 0)
             {
-                w.Weapons.Clear();
-                // Polymorphism handles ToEquipable() automatically!
-                w.Weapons.AddRange(this.Equipables.Select(e => e.ToEquipable()));
+                c.Level = Level;
+                c.PowerLevel = Level;
+                c.Experience = Experience;
+                c.Might = Might;
+                c.Guard = Guard;
+                c.Arcana = Arcana;
+                c.Perception = Perception;
+                c.BonusMaxHealth = BonusMaxHealth;
             }
-            else if (c is Archer a)
+            else
             {
-                a.Weapons.Clear();
-                a.Weapons.AddRange(this.Equipables.Select(e => e.ToEquipable()));
+                c.PowerLevel = PowerLevel;
             }
-            else if (c is Mage m)
-            {
-                m.Weapons.Clear();
-                m.Weapons.AddRange(this.Equipables.Select(e => e.ToEquipable()));
-                m.Mana = this.Mana;
-            }
+
+            c.Health = Math.Min(Health, c.MaxHealth);
+            if (c is Mage || Level > 0) c.Mana = Mana;
+            c.Supplies = new Dictionary<string, int>(Supplies);
+            c.LearnedSkills = new List<string>(LearnedSkills);
+            c.LocationId = string.IsNullOrEmpty(LocationId) ? "cinders_rest" : LocationId;
+
+            c.Weapons.Clear();
+            c.Weapons.AddRange(Equipables.Select(e => e.ToEquipable()));
+            if (EquippedIndex >= 0 && EquippedIndex < c.Weapons.Count)
+                c.EquippedWeapon = c.Weapons[EquippedIndex] as Weapon;
 
             return c;
         }
