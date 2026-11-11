@@ -33,7 +33,8 @@ The Hollow Court does not act directly if they can avoid it. They prefer:
 - Attempting to retrieve an artifact from the sealed chamber of the Emberveil Ruins (the Emberveil Focus)
 - Operating through couriers, including Dren Morrow
 - Hollow Court Sentinels present at the Ashen Throne and the deep ruins
-- The Ashlands arc ends with the player *learning the Court exists* — but not much more
+- Regional handler: **the Cinder Hand** (codename), who reports to the Archivist and wears a gauntlet attuned to the Emberveil Focus
+- The Ashlands arc ends with the player *learning the Court exists* — and that the Court has been expecting the Keeper
 
 ### The Mistwood (planned)
 *Details to be written when the Mistwood region is developed.*
@@ -60,7 +61,7 @@ Each Throne has a title, not a name — their identities are known only within t
 | The Diplomat | Manages relationships with legitimate governments and guilds |
 | The Shadow | Handles operations that cannot be acknowledged even within the Court |
 | The Heir | The Court's chosen next leader, identity completely unknown |
-| The Empty Throne | Always vacant — a reminder that power should never feel secure |
+| The Empty Throne | Always vacant — officially a reminder that power should never feel secure. Court dispatches found at the Ashen Throne call it the **Eighth Throne** and say it is being kept for "its proper occupant": the Keeper |
 
 The player will not meet any of them until the final arc. They will know their titles long before they know their faces.
 

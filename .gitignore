@@ -366,3 +366,5 @@ FodyWeavers.xsd
 # Ignore RoadmapUpdater builds
 Tools/RoadmapUpdater/bin/
 Tools/RoadmapUpdater/obj/
+# Local game saves
+Save/

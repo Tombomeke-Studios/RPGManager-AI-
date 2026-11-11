@@ -1,36 +1,98 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using RPGManagerLib.Characters.Heroes;
+using RPGManagerLib.Worlds;
 
 namespace RPGManagerLib.Saves
 {
     /// <summary>
-    /// Provides static methods for saving and loading character data in JSON format.
+    /// Reads and writes save files as JSON.
     /// </summary>
-    /// <remarks>The SaveManager class manages the persistence of character data by reading from and writing
-    /// to a JSON file in a designated save directory. It ensures that the save directory exists before saving and
-    /// handles errors gracefully during file operations. The class supports serialization of enums as strings and
-    /// formats JSON output for readability. All operations are performed on a predefined file location, and existing
-    /// files are overwritten when saving.</remarks>
+    /// <remarks>
+    /// The full game (roster + shared world) is stored in <c>keeper.json</c>. The older
+    /// <c>characters.json</c> list format is still supported and is migrated automatically on first load.
+    /// The save folder defaults to <c>Save/</c> and can be overridden with RPGMANAGER_SAVE_DIR.
+    /// </remarks>
     public static class SaveManager
     {
-        // TODO: Promote the root save payload from List<CharacterSaveData> to a SaveGame object when WorldState and roster data are added.
         private static readonly string SaveFolder =
             string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RPGMANAGER_SAVE_DIR"))
                 ? "Save"
                 : Environment.GetEnvironmentVariable("RPGMANAGER_SAVE_DIR")!;
         private const string SaveFileName = "characters.json";
+        private const string GameFileName = "keeper.json";
         private static readonly string SaveFile = Path.Combine(SaveFolder, SaveFileName);
+        private static readonly string GameFile = Path.Combine(SaveFolder, GameFileName);
+
+        private static JsonSerializerOptions Options(bool indented) => new()
+        {
+            WriteIndented = indented,
+            Converters = { new JsonStringEnumConverter() },
+            PropertyNameCaseInsensitive = true
+        };
 
         /// <summary>
-        /// Loads a list of characters from a saved file.
+        /// Saves the whole game: every hero, which one is active, and the shared world state.
         /// </summary>
-        /// <remarks>This method reads character data from a JSON file specified by the <c>SaveFile</c>
-        /// path.  If the file does not exist, an empty list is returned. The JSON data is deserialized into  a list of
-        /// <see cref="CharacterSaveData"/> objects, which are then converted to <see cref="Character"/>
-        /// objects.</remarks>
-        /// <returns>A list of <see cref="Character"/> objects loaded from the saved file. If the file does not exist  or the
-        /// data is invalid, an empty list is returned.</returns>
+        /// <param name="heroes">The roster.</param>
+        /// <param name="active">The active hero (may be null).</param>
+        /// <param name="world">The shared world.</param>
+        public static void SaveGame(IReadOnlyList<Character> heroes, Character? active, WorldState world)
+        {
+            Directory.CreateDirectory(SaveFolder);
+            var save = new SaveGame
+            {
+                Characters = heroes.Select(c => new CharacterSaveData(c)).ToList(),
+                ActiveIndex = active == null ? 0 : Math.Max(0, heroes.ToList().IndexOf(active)),
+                World = new WorldStateSaveData(world)
+            };
+            File.WriteAllText(GameFile, JsonSerializer.Serialize(save, Options(true)));
+        }
+
+        /// <summary>
+        /// Loads the whole game. Falls back to migrating an old character-only save.
+        /// </summary>
+        /// <returns>The save, or null when there is nothing to load or the file is unreadable.</returns>
+        public static SaveGame? LoadGame()
+        {
+            try
+            {
+                if (File.Exists(GameFile))
+                {
+                    string json = File.ReadAllText(GameFile);
+                    if (!string.IsNullOrWhiteSpace(json))
+                        return JsonSerializer.Deserialize<SaveGame>(json, Options(false));
+                }
+
+                if (File.Exists(SaveFile))
+                {
+                    string json = File.ReadAllText(SaveFile);
+                    if (string.IsNullOrWhiteSpace(json)) return null;
+                    var characters = JsonSerializer.Deserialize<List<CharacterSaveData>>(json, Options(false));
+                    if (characters != null && characters.Count > 0) return new SaveGame { Characters = characters };
+                }
+            }
+            catch (Exception ex) when (ex is JsonException or IOException or NotSupportedException)
+            {
+                Console.WriteLine("Save file could not be read. Starting a new game.");
+            }
+            return null;
+        }
+
+        /// <summary>True when a save exists on disk.</summary>
+        public static bool HasSave() => File.Exists(GameFile) || File.Exists(SaveFile);
+
+        /// <summary>Deletes the full-game save (used when starting over).</summary>
+        public static void DeleteGame()
+        {
+            if (File.Exists(GameFile)) File.Delete(GameFile);
+            if (File.Exists(SaveFile)) File.Delete(SaveFile);
+        }
+
+        /// <summary>
+        /// Loads a list of characters from the legacy character-only save file.
+        /// </summary>
+        /// <returns>The saved characters, or an empty list when the file is missing or invalid.</returns>
         public static List<Character> LoadCharacters()
         {
             try
@@ -43,63 +105,37 @@ namespace RPGManagerLib.Saves
                 if (string.IsNullOrWhiteSpace(json))
                     return new List<Character>();
 
-                var options = new JsonSerializerOptions
-                {
-                    Converters = { new JsonStringEnumConverter() },
-                    PropertyNameCaseInsensitive = true
-                };
-
-                // TODO: Load schema version, WorldState, and roster metadata here once the save format expands beyond character snapshots.
-                var saveDataList = JsonSerializer.Deserialize<List<CharacterSaveData>>(json, options)
+                var saveDataList = JsonSerializer.Deserialize<List<CharacterSaveData>>(json, Options(false))
                     ?? new List<CharacterSaveData>();
 
                 return saveDataList.Select(sd => sd.ToCharacter()).ToList();
             }
-            catch (JsonException ex)
+            catch (JsonException)
             {
                 Console.WriteLine("Save file contains invalid JSON. Starting with empty character list.");
-                //Console.WriteLine($"Details: {ex.Message}"); Debugging
                 return new List<Character>();
             }
-            catch (IOException ex)
+            catch (IOException)
             {
                 Console.WriteLine("Error reading save file.");
-                //Console.WriteLine($"Details: {ex.Message}"); Debugging
                 return new List<Character>();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 Console.WriteLine("Unexpected error while loading save file.");
-                //Console.WriteLine($"Details: {ex.Message}"); Debugging
                 return new List<Character>();
             }
         }
 
-
         /// <summary>
-        /// Saves a list of characters to a file in JSON format.
+        /// Saves a list of characters to the legacy character-only save file.
         /// </summary>
-        /// <remarks>The method ensures that the save directory exists before writing the file.  The JSON
-        /// output is formatted with indentation for readability and includes support for serializing enums as strings.
-        /// The save file is written to a predefined location, and any existing file at that location will be
-        /// overwritten.</remarks>
-        /// <param name="characters">The list of characters to save. Each character is serialized into a structured JSON format.</param>
+        /// <param name="characters">The characters to save.</param>
         public static void SaveCharacters(List<Character> characters)
         {
-            if (!Directory.Exists(SaveFolder))
-                Directory.CreateDirectory(SaveFolder);
-
+            Directory.CreateDirectory(SaveFolder);
             var saveData = characters.Select(c => new CharacterSaveData(c)).ToList();
-
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                Converters = { new JsonStringEnumConverter() }
-            };
-
-            // TODO: Serialize WorldState, roster unlocks, and future save-version metadata alongside characters.
-            string json = JsonSerializer.Serialize(saveData, options);
-            File.WriteAllText(SaveFile, json);
+            File.WriteAllText(SaveFile, JsonSerializer.Serialize(saveData, Options(true)));
             Console.WriteLine($"Saved to: {SaveFile}");
         }
     }

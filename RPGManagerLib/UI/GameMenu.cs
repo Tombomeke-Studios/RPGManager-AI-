@@ -1,186 +1,74 @@
-﻿using RPGManagerLib.Characters.Heroes;
-using RPGManagerLib.Saves;
-using RPGManagerLib.Worlds;
+﻿using RPGManagerLib.Adventure;
 
 namespace RPGManagerLib.UI
 {
     /// <summary>
-    /// High-level console game loop and character management menu.
+    /// The top-level game loop: loads the session, plays the opening for a new Keeper,
+    /// then keeps showing the active hero's current location until the player quits.
     /// </summary>
     public static class GameMenu
     {
-        private static List<Character> characters = new();
-        private static Character? currentCharacter = null;
-
         /// <summary>
-        /// Initializes state, loads characters, and enters the main menu.
+        /// Runs the game until the player quits or console input ends. Always saves on the way out.
         /// </summary>
         public static void Start()
         {
-            // TODO: Replace the raw character list with a CharacterRoster once slot unlocks and active-hero tracking are implemented.
-            // Load saved characters
-            characters = SaveManager.LoadCharacters();
+            if (Game.Roster.Heroes.Count == 0) Game.Load();
 
-            // If no characters exist, force creation
-            if (characters.Count == 0)
+            try
             {
-                Console.WriteLine("Welcome, brave adventurer! Let's create your first hero.");
-                var firstChar = CharacterFactory.CreateCharacter();
-                characters.Add(firstChar);
-                currentCharacter = firstChar;
-                SaveManager.SaveCharacters(characters);
+                if (Game.Roster.Heroes.Count == 0) Intro.Play();
 
-                Console.WriteLine($"\nCharacter '{firstChar.Name}' created! Your adventure begins...\n");
+                bool running = true;
+                while (running)
+                {
+                    running = Game.Hero.LocationId switch
+                    {
+                        Travel.ScorchedPath => ScorchedPathLocation.Visit(),
+                        Travel.EmberveilRuins => EmberveilRuinsLocation.Visit(),
+                        Travel.AshenThrone => AshenThroneLocation.Visit(),
+                        _ => CindersRestLocation.Visit()
+                    };
+                }
             }
-            else
+            catch (InputEndedException)
             {
-                // Load last played character
-                currentCharacter = characters[0]; // or track last played
-            }
-
-            // Ensure a character is loaded before proceeding
-            if (currentCharacter is null)
-            {
-                Console.WriteLine("Error: No current character is loaded. Cannot start the game.");
-                return;
+                // Piped input ran out: fall through to the save below.
             }
 
-            // TODO: Bootstrap the starting region from saved WorldState/region data instead of creating a one-off world here.
-            // Generate world and travel there
-            World Tavaryn = new("Tavaryn", "A quite small starter world with not that many dangerous monsters");
-            Tavaryn.Unlock();
-            currentCharacter.TravelTo(Tavaryn);
-
-            // Then show the main menu
-            ShowMainMenu();
-            
+            Game.Save();
+            Ui.Line();
+            Ui.Vision("You loosen your hold. The ash keeps falling. Tavaryn will be there when you return.");
+            Ui.Line();
         }
-
-        /// <summary>
-        /// Displays the main menu and handles user interactions for managing characters and gameplay options.
-        /// </summary>
-        /// <remarks>The main menu provides options to create a new character, switch between existing
-        /// characters,  view the current character, explore, engage in combat, or quit the application. Each option 
-        /// performs the corresponding action and may involve saving character data or updating the current  character
-        /// state. The menu runs in a loop until the user chooses to quit.</remarks>
-        private static void ShowMainMenu()
-        {
-            var mainMenu = new MenuSystem("MAIN MENU");
-
-            mainMenu.AddOption("1", "New Character", () =>
-            {
-                // TODO: Prevent creation when the roster is full and surface the next slot unlock requirement in the menu.
-                var newChar = CharacterFactory.CreateCharacter();
-                characters.Add(newChar);
-                currentCharacter = newChar;
-                SaveManager.SaveCharacters(characters);
-            }, "begin a new hero's journey");
-
-            mainMenu.AddOption("2", "Switch Character", () =>
-            {
-                // TODO: Persist the active character in save data so the last played hero is restored on launch.
-                SwitchCharacter();
-                SaveManager.SaveCharacters(characters);
-            }, "swap to another hero in your roster");
-
-            mainMenu.AddOption("3", "View Current Character", () =>
-            {
-                if (currentCharacter != null)
-                    Console.WriteLine(currentCharacter);
-                else
-                    Console.WriteLine("No character selected.");
-            }, "inspect stats and equipment");
-
-            // TODO: Route Explore into the travel/location loop once regions, encounters, and quest hooks exist.
-            mainMenu.AddOption("4", "Explore", () => Explore(), "travel the world of Tavaryn");
-            // TODO: Replace this stub with CombatManager once combat, loot, and post-fight rewards are implemented.
-            mainMenu.AddOption("5", "Fight", () => Fight(), "enter combat");
-            mainMenu.AddOption("6", "Quit", () =>
-            {
-                SaveManager.SaveCharacters(characters);
-                Environment.Exit(0);
-            }, "save and exit");
-
-            while (true)
-            {
-                mainMenu.Show();
-                Console.WriteLine("\nPress ENTER to continue...");
-                Console.ReadLine();
-            }
-
-        }
-
-        /// <summary>
-        /// Allows the user to switch the currently active character by selecting from a list of available characters.
-        /// </summary>
-        /// <remarks>If no characters are available, the method displays a message and exits without
-        /// making any changes. The user is prompted to select a character by entering the corresponding number from the
-        /// displayed list. If the input is invalid or out of range, an error message is displayed, and the active
-        /// character remains unchanged.</remarks>
-        private static void SwitchCharacter()
-        {
-            if (characters.Count == 0)
-            {
-                Console.WriteLine("No characters available! Create one first.");
-                return;
-            }
-
-            Console.WriteLine("\n--- Choose Your Hero ---\n");
-            for (int i = 0; i < characters.Count; i++)
-            {
-                string label = $"{characters[i].Name} the {characters[i].CharacterType}";
-                string hint = currentCharacter == characters[i] ? "currently active" : "ready for adventure";
-                Console.WriteLine($"  [{i + 1}] {label.PadRight(24)} — {hint}");
-            }
-
-            Console.Write("\n> ");
-            if (int.TryParse(Console.ReadLine(), out int choice) &&
-                choice > 0 && choice <= characters.Count)
-            {
-                currentCharacter = characters[choice - 1];
-                Console.WriteLine($"You are now playing as {currentCharacter.Name}!");
-            }
-            else
-            {
-                Console.WriteLine("Invalid selection!");
-            }
-        }
-
-        /// <summary>
-        /// Initiates an exploration action for the currently selected character.
-        /// </summary>
-        /// <remarks>This method outputs a message indicating the exploration activity of the selected
-        /// character. If no character is selected, a message prompting the user to select a character is
-        /// displayed.</remarks>
-        private static void Explore()
-        {
-            if (currentCharacter == null)
-            {
-                Console.WriteLine("Select a character first!");
-                return;
-            }
-
-            // TODO: Present region/location choices here and resolve travel, random encounters, dialogue, and world-flag updates.
-            Console.WriteLine($"{currentCharacter.Name} is exploring the world...");
-        }
-
-        /// <summary>
-        /// Initiates a battle sequence for the currently selected character.
-        /// </summary>
-        /// <remarks>This method requires a character to be selected before it is called.  If no character
-        /// is selected, a message will be displayed, and the method will exit without performing any action.</remarks>
-        private static void Fight()
-        {
-            if (currentCharacter == null)
-            {
-                Console.WriteLine("Select a character first!");
-                return;
-            }
-
-            // TODO: Start CombatManager here and replace this placeholder once enemies, actions, and rewards exist.
-            Console.WriteLine($"{currentCharacter.Name} is preparing for battle!");
-        }
-
     }
 
+    /// <summary>
+    /// Shared frame for location screens: a status line on top, and Travel / Keeper's menu at the bottom.
+    /// </summary>
+    public static class LocationMenu
+    {
+        /// <summary>Prints the location title, its description and the active hero's vitals.</summary>
+        public static void Banner(string title, string description)
+        {
+            var hero = Game.Hero;
+            Ui.Header(title);
+            Ui.Narrate(description);
+            Ui.Line();
+            Ui.Write($"  {hero.Name} the {hero.CharacterType}", ConsoleColor.Cyan);
+            Ui.Line($"   Gold {hero.Gold}", ConsoleColor.Yellow);
+            HeroScreens.WriteVitals(hero);
+        }
+
+        /// <summary>Shows the location's own options plus the common ones.</summary>
+        /// <returns>False when the player chose to quit the game.</returns>
+        public static bool Show(List<MenuOption> options)
+        {
+            bool keepPlaying = true;
+            options.Add(new MenuOption("t", "Travel", "leave for another place", Travel.Menu));
+            options.Add(new MenuOption("k", "Keeper's menu", "hero, pack, journal, roster, save", () => keepPlaying = HeroScreens.KeeperMenu()));
+            Ui.Menu(options);
+            return keepPlaying;
+        }
+    }
 }

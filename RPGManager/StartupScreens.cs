@@ -15,6 +15,12 @@ namespace RPGManager
         /// <param name="characters">The currently loaded character roster.</param>
         public static void Show(IReadOnlyList<RPGManagerLib.Characters.Heroes.Character> characters)
         {
+            // Piped input cannot answer key prompts; skip straight to the game.
+            if (Console.IsInputRedirected || Console.IsOutputRedirected)
+            {
+                return;
+            }
+
             if (characters.Count > 0)
             {
                 ShowWelcomeBackScreen(characters);
@@ -95,16 +101,15 @@ namespace RPGManager
         {
             return
             [
-                "The world stands at the edge of chaos.",
-                "Legends whisper of heroes long forgotten,",
-                "and dark powers rising beyond the misty mountains.",
+                "Tavaryn is a continent of old scars and older ruins.",
+                "Seven kingdoms once held it together. All seven have fallen.",
                 string.Empty,
-                "From the ashes of old kingdoms, new champions emerge.",
-                "Their fate lies in your hands as the Keeper of Destiny,",
-                "and you shall forge their path through war, magic, and time itself.",
+                "You are the Keeper of Destiny: older than the kingdoms,",
+                "unable to lift a stone, able to guide the hands that can.",
+                "One hero at a time. One world for all of them.",
                 string.Empty,
-                "Raise your banners, summon your courage...",
-                "and let the tale begin."
+                "Raise your banners, choose your champions...",
+                "and let the ash remember your name."
             ];
         }
 
@@ -131,7 +136,7 @@ namespace RPGManager
                     continue;
                 }
 
-                ConsoleColor color = storyLine.StartsWith("Raise") || storyLine.StartsWith("and let")
+                ConsoleColor color = storyLine.StartsWith("Raise") || storyLine.StartsWith("and let the ash")
                     ? ConsoleColor.Cyan
                     : ConsoleColor.Gray;
 

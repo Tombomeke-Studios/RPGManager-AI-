@@ -1,4 +1,5 @@
-using RPGManagerLib.Saves;
+using RPGManagerLib.Adventure;
+using RPGManagerLib.Combat;
 using RPGManagerLib.UI;
 
 namespace RPGManager
@@ -20,8 +21,14 @@ namespace RPGManager
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.InputEncoding = System.Text.Encoding.UTF8;
 
-            var characters = SaveManager.LoadCharacters();
-            StartupScreens.Show(characters);
+            if (args.Contains("--balance"))
+            {
+                BalanceSimulator.Run();
+                return;
+            }
+
+            Game.Load();
+            StartupScreens.Show(Game.Roster.Heroes);
             GameMenu.Start();
         }
     }

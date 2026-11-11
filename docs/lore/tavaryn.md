@@ -22,6 +22,8 @@ You are not omnipotent. You can only be bonded to one hero at a time. You cannot
 
 Why the Keeper exists, and where they came from, is a question the game never fully answers. The world's scholars and mystics have theories. None agree.
 
+**Playable build:** a hero who falls is not lost — the Keeper holds on, and the hero wakes in Cinder's Rest. The Ashlands arc hints that this is not mercy but habit: the Keeper has bonded heroes before, was present at the fall of Emberveil, and has never learned to let go. The Ancient Compact is also reframed as a lock rather than a treaty — seven seals, each fed by its kingdom.
+
 ---
 
 ## The Hollow Court

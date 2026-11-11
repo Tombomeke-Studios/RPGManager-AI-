@@ -14,7 +14,8 @@ This is where new Keepers awaken. The Veil between worlds is thinnest where dest
 
 **Level range:** 1–10
 **First character slot unlocks at:** Start of game
-**Region completion unlocks:** Travel to the Mistwood, second character slot
+**Region completion unlocks:** Travel to the Mistwood
+**Roster slots (playable build):** slot 2 when any hero reaches level 3, slot 3 at level 6 — see [../ASHLANDS_BUILD_NOTES.md](../ASHLANDS_BUILD_NOTES.md) for why
 
 ---
 
@@ -255,4 +256,18 @@ This sets up the same pattern repeating in every subsequent region — the Court
 
 ---
 
-*Last updated: April 2026*
+## Additions in the Playable Build
+
+Details and reasoning live in [../ASHLANDS_BUILD_NOTES.md](../ASHLANDS_BUILD_NOTES.md). In short:
+
+- **The Cinder Hand** — the Court's handler in the Ashlands and Dren's abandoned contact. Final encounter at the Ashen Throne. Her gauntlet draws on the Emberveil Focus; if the Keeper holds the Focus, it fails her.
+- **Extra enemies** — Scavenger Alpha (pack leader) and Bandit Bowman.
+- **Coldfire** — Lira can turn three Fire Essence "inside out" to give a weapon ice damage. This is how non-mages deal with Ash Wraiths.
+- **Class caches** — each class's route into the sealed chamber leads to its own reward, claimable once per class per save, even after another hero broke the seal.
+- **Hollow Reprisal** — if Thresh becomes an ally, the Court sends Sentinels to silence him.
+- **The Ashen Throne can be sat on.** It returns a memory: the Keeper was present when Emberveil burned.
+- **World flags added** — `EmberArtifactLeft`, `ThreshSaved`, `ThreshLost`, `CinderHandDefeated`, `AshenThroneSat`, `AshenThroneRefused`, plus dungeon-progress flags. All are constants in `WorldFlags`.
+
+---
+
+*Last updated: November 2026*
