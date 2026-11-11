@@ -1,4 +1,4 @@
-﻿using RPGManagerLib.Items.Weapons;
+using RPGManagerLib.Items.Weapons;
 
 namespace RPGManagerLib.Characters.Heroes
 {
@@ -29,10 +29,11 @@ namespace RPGManagerLib.Characters.Heroes
 
         protected override void OnLevelUp()
         {
-            Might += 2;
-            Guard += 1;
-            if (Level % 2 == 0) Perception += 1;
+            Might += 1;
+            if (Level % 2 == 0) Guard += 1;
         }
+
+        protected override HeroStat[] DefaultBuild => new[] { HeroStat.Might, HeroStat.Guard, HeroStat.Might, HeroStat.Vitality };
 
         public override bool CanWield(Weapon weapon) =>
             weapon.Type is WeaponType.SWORD or WeaponType.AXE or WeaponType.SPEAR or WeaponType.DAGGER;

@@ -43,9 +43,10 @@ namespace RPGManagerLib.Characters.Heroes
         protected override void OnLevelUp()
         {
             Perception += 1;
-            Might += 1;
-            if (Level % 2 == 0) Guard += 1;
+            if (Level % 3 == 0) Guard += 1;
         }
+
+        protected override HeroStat[] DefaultBuild => new[] { HeroStat.Perception, HeroStat.Might, HeroStat.Perception, HeroStat.Guard };
 
         public override bool CanWield(Weapon weapon) => weapon.Type is WeaponType.BOW or WeaponType.DAGGER;
     }

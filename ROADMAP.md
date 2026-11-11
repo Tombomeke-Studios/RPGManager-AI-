@@ -152,12 +152,12 @@ The long-term goal is a fully playable, story-driven console RPG where:
 
 > Automatically generated from RPGManagerLib source files.
 
-_Last updated: **2026-11-11 07:07**_
+_Last updated: **2026-11-11 07:42**_
 
 ### 📊 Codebase Stats
 - **Namespaces:** 23
-- **Classes:** 74
-- **Unique Methods:** 189
+- **Classes:** 76
+- **Unique Methods:** 203
 - **Pending TODOs:** 3
 
 
@@ -178,6 +178,15 @@ _Last updated: **2026-11-11 07:07**_
 - `Visit()`
 - `Talk()`
 - `TalkAtInn()`
+
+### [Contract.cs](https://github.com/tombomeke-ehb/RPGManager/main/RPGManagerLib/Adventure/Contracts.cs)
+> One fight inside a contract.
+
+**Public Methods:**
+- `ContractStage()`
+- `Done()`
+- `EnsureLoaded()`
+- `Board()`
 
 ### [EmberveilRuinsLocation.cs](https://github.com/tombomeke-ehb/RPGManager/main/RPGManagerLib/Adventure/EmberveilRuinsLocation.cs)
 > The Emberveil Ruins: Lira's camp, the vents, and the descent to the sealed chamber — which each class opens in its own way.
@@ -205,9 +214,18 @@ _Last updated: **2026-11-11 07:07**_
 - `ScavengerPack()`
 - `BanditGroup()`
 - `RuinsGroup()`
+- `PlateauGroup()`
 - `Smithy()`
 - `Supplies()`
 - `Sell()`
+
+### [Gossip.cs](https://github.com/tombomeke-ehb/RPGManager/main/RPGManagerLib/Adventure/Gossip.cs)
+> One thing somebody (or some place) has to say about a deed done by a different hero.
+
+**Public Methods:**
+- `Rumour()`
+- `Register()`
+- `Tell()`
 
 ### [Intro.cs](https://github.com/tombomeke-ehb/RPGManager/main/RPGManagerLib/Adventure/Intro.cs)
 > The opening: the Keeper wakes, bonds a first hero, and arrives in Cinder's Rest.
@@ -244,7 +262,7 @@ _Last updated: **2026-11-11 07:07**_
 
 ### [Character.cs](https://github.com/tombomeke-ehb/RPGManager/main/RPGManagerLib/Characters/Heroes/Character.cs)
 *Inherits from: `ICombatant`*  
-> A hero bonded to the Keeper: name, vitals, stats, level, equipment and supplies.
+> The things a stat point can be spent on.
 
 **Public Methods:**
 - `CanWield()`
@@ -255,6 +273,8 @@ _Last updated: **2026-11-11 07:07**_
 - `UseSupply()`
 - `GainExperience()`
 - `SetLevel()`
+- `SpendPoint()`
+- `AutoSpendPoints()`
 - `RestoreFully()`
 - `TakeDamage()`
 - `Restore()`
@@ -310,7 +330,7 @@ _Last updated: **2026-11-11 07:07**_
 - `Run()`
 
 ### [BattleOptions.cs](https://github.com/tombomeke-ehb/RPGManager/main/RPGManagerLib/Combat/Battle.cs)
-> How a fight ended.</summary> public enum BattleOutcome { Victory, Defeat, Fled } <summary>What the hero can do on a turn.</summary> public enum HeroActionKind { Attack, Skill, Supply, Defend, Flee } <summary>A chosen hero action.</summary> <param name="Kind">The action type.</param> <param name="Id">Skill id or supply id, when relevant.</param> <param name="Target">Index into <see cref="Battle.Enemies"/>.</param> public record HeroAction(HeroActionKind Kind, string? Id = null, int Target = 0); <summary>Per-fight rules set by whoever starts the battle.</summary> public class BattleOptions { <summary>Story fights cannot be fled.</summary> public bool CanFlee { get; set; } = true; <summary>Name of an ally fighting alongside the hero, if any.</summary> public string? AllyName { get; set; } <summary>Average damage the ally deals each round.</summary> public double AllyDamage { get; set; } <summary>The Cinder Hand cannot draw on the Focus (the Keeper holds it).</summary> public bool FocusDenied { get; set; } <summary>Rounds the first enemy starts Exposed (a known weakness).</summary> public int OpeningExposedTurns { get; set; } } <summary>What came out of a fight.</summary> public class BattleResult { public BattleOutcome Outcome { get; set; } public int Xp { get; set; } public int Gold { get; set; } public int Rounds { get; set; } public List<string> Loot { get; } = new(); public List<Enemy> Slain { get; } = new(); } <summary>Supplies the hero's decisions: the console for players, a bot for the balance simulator.</summary> public interface IBattleController { HeroAction ChooseAction(Battle battle); } <summary> One turn-based fight between a hero and a group of enemies. Each round: hero acts, ally acts, enemies act, then effects tick in a single pass.
+> How a fight ended.</summary> public enum BattleOutcome { Victory, Defeat, Fled } <summary>What the hero can do on a turn.</summary> public enum HeroActionKind { Attack, Skill, Supply, Defend, Flee } <summary>A chosen hero action.</summary> <param name="Kind">The action type.</param> <param name="Id">Skill id or supply id, when relevant.</param> <param name="Target">Index into <see cref="Battle.Enemies"/>.</param> public record HeroAction(HeroActionKind Kind, string? Id = null, int Target = 0); <summary>Per-fight rules set by whoever starts the battle.</summary> public class BattleOptions { <summary>Story fights cannot be fled.</summary> public bool CanFlee { get; set; } = true; <summary>Name of an ally fighting alongside the hero, if any.</summary> public string? AllyName { get; set; } <summary>Average damage the ally deals each round.</summary> public double AllyDamage { get; set; } <summary>The Cinder Hand cannot draw on the Focus (the Keeper holds it).</summary> public bool FocusDenied { get; set; } <summary>Multiplier on the chance that enemies set the hero burning.</summary> public double BurnResistance { get; set; } = 1.0; <summary>Rounds the first enemy starts Exposed (a known weakness).</summary> public int OpeningExposedTurns { get; set; } } <summary>What came out of a fight.</summary> public class BattleResult { public BattleOutcome Outcome { get; set; } public int Xp { get; set; } public int Gold { get; set; } public int Rounds { get; set; } public List<string> Loot { get; } = new(); public List<Enemy> Slain { get; } = new(); } <summary>Supplies the hero's decisions: the console for players, a bot for the balance simulator.</summary> public interface IBattleController { HeroAction ChooseAction(Battle battle); } <summary> One turn-based fight between a hero and a group of enemies. Each round: hero acts, ally acts, enemies act, then effects tick in a single pass.
 
 **Public Methods:**
 - `HeroAction()`
@@ -326,11 +346,14 @@ _Last updated: **2026-11-11 07:07**_
 - `ChooseAction()`
 
 ### [Bestiary.cs](https://github.com/tombomeke-ehb/RPGManager/main/RPGManagerLib/Combat/Bestiary.cs)
-> Every enemy of the Ashlands. Each call builds a fresh instance at full health.
+> Every enemy of the Ashlands. Each call builds a fresh individual: no two are quite alike, and a wild one may turn out to be a Veteran or an Elite.
 
 **Public Methods:**
+- `Exact()`
 - `Create()`
+- `Promote()`
 - `Group()`
+- `Wild()`
 
 ### [Enemy.cs](https://github.com/tombomeke-ehb/RPGManager/main/RPGManagerLib/Combat/Enemy.cs)
 *Inherits from: `ICombatant`*  
@@ -715,6 +738,7 @@ _No unique public methods found._
 **Public Methods:**
 - `KeeperMenu()`
 - `Sheet()`
+- `SpendPoints()`
 - `WriteVitals()`
 - `Pack()`
 - `Journal()`

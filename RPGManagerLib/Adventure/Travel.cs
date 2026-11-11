@@ -85,6 +85,8 @@ public static class Travel
         double chance = destination.EncounterChance;
         bool banditRoad = destination.Id is ScorchedPath or CindersRest or EmberveilRuins;
         if (banditRoad && Prices.RoadIsOpen) chance *= 0.4;
+        if (destination.Id is ScorchedPath or CindersRest && Contracts.Done(Contracts.EyesOnTheRoad)) chance *= 0.5;
+        if (destination.Id == EmberveilRuins && Contracts.Done(Contracts.UnfinishedLecture)) chance *= 0.5;
         if (!Rng.Chance(chance)) return true;
 
         List<Enemy> enemies;
@@ -92,7 +94,7 @@ public static class Travel
         switch (destination.Id)
         {
             case CindersRest:
-                enemies = Encounters.ScavengerPack(Math.Min(hero.Level, 3));
+                enemies = Encounters.ScavengerPack(hero.Level);
                 intro = "Almost home. Then grey shapes peel away from the grey ground, and the pack is on you.";
                 break;
             case ScorchedPath:
@@ -104,9 +106,7 @@ public static class Travel
                 intro = "The road to the ruins runs past cracked ground where the earth breathes heat. Something has been waiting in the shimmer.";
                 break;
             default:
-                enemies = Rng.Chance(0.5)
-                    ? Bestiary.Group(Bestiary.CourtSentinel)
-                    : Bestiary.Group(Bestiary.AshWraith, Bestiary.EmberSprite);
+                enemies = Encounters.PlateauGroup(hero.Level);
                 intro = "The climb toward the plateau is watched. You knew it would be.";
                 break;
         }

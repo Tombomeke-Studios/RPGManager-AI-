@@ -1,4 +1,4 @@
-﻿using RPGManagerLib.Items.Weapons;
+using RPGManagerLib.Items.Weapons;
 using RPGManagerLib.Spells;
 
 namespace RPGManagerLib.Characters.Heroes
@@ -42,10 +42,11 @@ namespace RPGManagerLib.Characters.Heroes
 
         protected override void OnLevelUp()
         {
-            Arcana += 2;
-            if (Level % 2 == 0) Guard += 1;
-            else Perception += 1;
+            Arcana += 1;
+            if (Level % 3 == 0) Guard += 1;
         }
+
+        protected override HeroStat[] DefaultBuild => new[] { HeroStat.Arcana, HeroStat.Vitality, HeroStat.Arcana, HeroStat.Guard };
 
         public override bool CanWield(Weapon weapon) => weapon.Type is WeaponType.STAFF or WeaponType.DAGGER;
 

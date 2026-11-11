@@ -25,7 +25,7 @@ public static class HeroScreens
             bool back = false, quit = false;
             Ui.Menu(new List<MenuOption>
             {
-                new("1", "Hero", "stats and skills", Sheet),
+                new("1", "Hero", hero.UnspentPoints > 0 ? $"stats and skills — {hero.UnspentPoints} stat points to spend!" : "stats and skills", Sheet),
                 new("2", "Pack", "equip weapons, use supplies", Pack),
                 new("3", "Journal", "active and finished quests", Journal),
                 new("4", "Standing", "reputation and the state of the world", Standing),
@@ -68,7 +68,32 @@ public static class HeroScreens
             .Where(s => s.HeroClass == hero.CharacterType && s.UnlockLevel > hero.Level)
             .OrderBy(s => s.UnlockLevel).FirstOrDefault();
         if (upcoming != null) Ui.Note($"  Next: {upcoming.Name} at level {upcoming.UnlockLevel}.");
-        Ui.Pause();
+        if (hero.UnspentPoints > 0) SpendPoints();
+        else Ui.Pause();
+    }
+
+    /// <summary>
+    /// Lets the player spend waiting stat points one at a time. This is where a build is decided:
+    /// the same class can be a wall, a cannon or something in between.
+    /// </summary>
+    public static void SpendPoints()
+    {
+        var hero = Game.Hero;
+        while (hero.UnspentPoints > 0)
+        {
+            Ui.Sub($"Stat points to spend: {hero.UnspentPoints}");
+            int choice = Ui.Choose(new List<string>
+            {
+                $"Might {hero.Might} → {hero.Might + 1}        melee and dagger damage",
+                $"Guard {hero.Guard} → {hero.Guard + 1}        take less damage from every hit",
+                $"Arcana {hero.Arcana} → {hero.Arcana + 1}       spell damage, healing and wards",
+                $"Perception {hero.Perception} → {hero.Perception + 1}   bow damage, critical hits, escaping, noticing things",
+                $"Vitality                +{Character.HealthPerVitality} maximum health ({hero.MaxHealth:0} → {hero.MaxHealth + Character.HealthPerVitality:0})",
+            }, "Decide later (Keeper's menu → Hero)");
+            if (choice < 0) return;
+            hero.SpendPoint((HeroStat)choice);
+        }
+        Game.Save();
     }
 
     /// <summary>Writes the health, resource and XP lines for a hero.</summary>
@@ -258,6 +283,8 @@ public static class HeroScreens
         if (w.Has(WorldFlags.AshenThroneSat)) lines.Add($"A hero of the Keeper sat on the Ashen Throne{By(WorldFlags.AshenThroneSat)}.");
         if (w.Has(WorldFlags.AshenThroneRefused)) lines.Add($"A hero of the Keeper walked away from the Ashen Throne{By(WorldFlags.AshenThroneRefused)}.");
         if (Prices.RoadIsOpen) lines.Add("Caravans are using the Scorched Path again. Supplies are cheaper for everyone.");
+        foreach (var contract in Contracts.All.Where(c => Contracts.Done(c.Id)))
+            lines.Add($"{contract.WorldEffect}{By(contract.Flag)}");
         if (lines.Count == 0) lines.Add("Nothing yet. The Ashlands have not noticed you.");
         return lines;
     }
@@ -319,6 +346,13 @@ public static class HeroScreens
         hero.SetLevel(level);
         CharacterFactory.GiveStartingSupplies(hero);
         roster.TryAdd(hero);
+        if (hero.UnspentPoints > 0)
+        {
+            Ui.Line();
+            Ui.Narrate($"{hero.Name} arrives with some of the Keeper's experience already in their bones. Shape it.");
+            SpendPoints();
+            hero.RestoreFully();
+        }
         Game.World.Log($"The Keeper bonded with {hero.Name} the {hero.CharacterType}.");
 
         Ui.Line();

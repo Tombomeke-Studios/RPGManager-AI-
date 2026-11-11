@@ -29,6 +29,16 @@ public static class BalanceSimulator
         new("Cinder Hand", 8, new[] { Bestiary.CinderHand }, 4, true),
         new("Cinder Hand", 9, new[] { Bestiary.CinderHand }, 4, true),
         new("Cinder Hand (Focus held)", 9, new[] { Bestiary.CinderHand }, 4, true, new BattleOptions { FocusDenied = true }),
+        new("ELITE scavenger + 1", 1, new[] { "!" + Bestiary.AshScavenger, Bestiary.AshScavenger }),
+        new("ELITE goblin + slinger", 2, new[] { "!" + Bestiary.CinderGoblin, Bestiary.GoblinSlinger }),
+        new("ELITE bandit + bowman", 4, new[] { "!" + Bestiary.Bandit, Bestiary.BanditBowman }, 3, true),
+        new("contract: Old Ironside", 5, new[] { "!" + Bestiary.AshbackBoar }, 3, true),
+        new("contract: Magister Oren", 6, new[] { "+" + Bestiary.AshWraith }, 3, true),
+        new("contract: paymaster guards", 6, new[] { Bestiary.BanditCutthroat, Bestiary.BanditEnforcer }, 3, true),
+        new("contract: Door-Warden", 9, new[] { "!" + Bestiary.RuinGolem }, 4, true),
+        new("contract: Inquisitor + sentinel", 10, new[] { Bestiary.CourtInquisitor, Bestiary.CourtSentinel }, 4, true),
+        new("contract: Ash Drake", 11, new[] { Bestiary.AshDrake }, 5, true),
+        new("contract: Ash Drake", 13, new[] { Bestiary.AshDrake }, 5, true),
     };
 
     /// <summary>Runs every scenario for every class and prints a table.</summary>
@@ -48,7 +58,14 @@ public static class BalanceSimulator
                     var hero = Build(heroClass, scenario);
                     var options = scenario.Options == null ? new BattleOptions() : new BattleOptions { FocusDenied = scenario.Options.FocusDenied };
                     options.CanFlee = false;
-                    var result = new Battle(hero, Bestiary.Group(scenario.Enemies), new BotBattleController(), options).Run();
+                    var enemies = scenario.Enemies.Select(spec =>
+                    {
+                        var enemy = Bestiary.Create(spec.TrimStart('+', '!'));
+                        if (spec.StartsWith('!')) Bestiary.Promote(enemy, EnemyRank.Elite);
+                        else if (spec.StartsWith('+')) Bestiary.Promote(enemy, EnemyRank.Veteran);
+                        return enemy;
+                    }).ToList();
+                    var result = new Battle(hero, enemies, new BotBattleController(), options).Run();
                     rounds += result.Rounds;
                     potions += scenario.Potions - hero.Supplies.Values.Sum();
                     if (result.Outcome != BattleOutcome.Victory) continue;
@@ -72,6 +89,8 @@ public static class BalanceSimulator
             _ => new Warrior("Sim")
         };
         hero.SetLevel(scenario.Level);
+        hero.AutoSpendPoints();
+        hero.RestoreFully();
 
         string[] gear = (heroClass, scenario.Upgraded) switch
         {

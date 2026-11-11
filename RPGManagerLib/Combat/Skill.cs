@@ -70,6 +70,10 @@ public static class SkillBook
         new() { Id = "execute", Name = "Execute", HeroClass = "Warrior", UnlockLevel = 7, Cost = 45, WeaponMultiplier = 2.0, Special = SkillSpecial.Execute,
                 Description = "200% weapon damage — 320% against a target below 35% health." },
 
+        new() { Id = "earthshaker", Name = "Earthshaker", HeroClass = "Warrior", UnlockLevel = 11, Cost = 55, WeaponMultiplier = 1.3, Target = SkillTarget.AllEnemies,
+                Status = StatusType.Stun, StatusChance = 0.35, StatusTurns = 1,
+                Description = "Slam the ground: 130% damage to all enemies, 35% chance to Stun each." },
+
         // --- Mage: spends Mana, which carries over between fights ---
         new() { Id = "fireball", Name = "Fireball", HeroClass = "Mage", UnlockLevel = 1, Cost = 20, IsSpell = true, Element = Element.FIRE, BaseDamage = 30,
                 Status = StatusType.Burn, StatusChance = 0.30, StatusTurns = 3,
@@ -90,6 +94,10 @@ public static class SkillBook
                 Status = StatusType.Burn, StatusChance = 0.60, StatusTurns = 3,
                 Description = "A lost Emberveil war-spell. Heavy fire damage, 60% chance to Burn." },
 
+        new() { Id = "glacial_tomb", Name = "Glacial Tomb", HeroClass = "Mage", UnlockLevel = 11, Cost = 50, IsSpell = true, Element = Element.ICE, BaseDamage = 70,
+                Status = StatusType.Freeze, StatusChance = 0.6, StatusTurns = 1,
+                Description = "Entomb one enemy in ice. Heavy ice damage, 60% chance to Freeze." },
+
         // --- Archer: spends Arrows, a per-fight budget set by the quiver ---
         new() { Id = "aimed_shot", Name = "Aimed Shot", HeroClass = "Archer", UnlockLevel = 1, Cost = 3, WeaponMultiplier = 1.6, CritBonus = 0.30,
                 Description = "Take the time to place it. 160% damage, +30% critical chance." },
@@ -103,8 +111,11 @@ public static class SkillBook
         new() { Id = "pinning_shot", Name = "Pinning Shot", HeroClass = "Archer", UnlockLevel = 6, Cost = 4, WeaponMultiplier = 1.2,
                 Status = StatusType.Stun, StatusChance = 1.0, StatusTurns = 1,
                 Description = "120% damage and the target loses its next turn." },
-        new() { Id = "heartseeker", Name = "Heartseeker", HeroClass = "Archer", UnlockLevel = 8, Cost = 6, WeaponMultiplier = 2.3, Special = SkillSpecial.Pierce,
-                Description = "230% damage that ignores armour entirely." },
+        new() { Id = "heartseeker", Name = "Heartseeker", HeroClass = "Archer", UnlockLevel = 8, Cost = 6, WeaponMultiplier = 2.0, Special = SkillSpecial.Pierce,
+                Description = "200% damage that ignores armour entirely." },
+        new() { Id = "rain_of_thorns", Name = "Rain of Thorns", HeroClass = "Archer", UnlockLevel = 11, Cost = 8, WeaponMultiplier = 1.1, Target = SkillTarget.AllEnemies,
+                Status = StatusType.Poison, StatusChance = 1.0, StatusTurns = 3,
+                Description = "110% damage to every enemy, and all of them are Poisoned." },
     };
 
     /// <summary>Looks up a skill by id.</summary>

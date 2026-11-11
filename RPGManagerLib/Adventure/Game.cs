@@ -106,7 +106,7 @@ public static class Rewards
 
         Ui.Line();
         Ui.Line($"  ★ {hero.Name} reaches level {hero.Level}! ★", ConsoleColor.Yellow);
-        var parts = new List<string> { $"Health +{hero.MaxHealth - before.MaxHealth:0}" };
+        var parts = new List<string> { $"Health +{hero.MaxHealth - before.MaxHealth:0}", $"{hero.UnspentPoints} stat points" };
         if (hero.Might > before.Might) parts.Add($"Might +{hero.Might - before.Might}");
         if (hero.Guard > before.Guard) parts.Add($"Guard +{hero.Guard - before.Guard}");
         if (hero.Arcana > before.Arcana) parts.Add($"Arcana +{hero.Arcana - before.Arcana}");
@@ -119,6 +119,7 @@ public static class Rewards
                 Ui.Line($"  New skill: {skill.Name} — {skill.Description}", ConsoleColor.Cyan);
 
         Game.World.Log($"{hero.Name} reached level {hero.Level}.");
+        HeroScreens.SpendPoints();
 
         if (Game.Roster.UnlockedSlots > slotsBefore)
         {
@@ -150,7 +151,13 @@ public static class Rewards
         Ui.Line($"  ✔ Quest complete: {quest.Title}", ConsoleColor.Green);
         int reputation = quest.Reputation;
         if (quest.Repeatable && Game.World.Count(QuestLog.BountiesDone) > 10) reputation = 0;
-        Give(quest.Gold, quest.Xp, reputation);
+        int gold = quest.Gold;
+        if (quest.Repeatable && Contracts.Done(Contracts.ThePaymaster))
+        {
+            gold = (int)(gold * 1.5);
+            Ui.World("Paid from the Court's own strongbox.");
+        }
+        Give(gold, quest.Xp, reputation);
     }
 
     /// <summary>Accepts a quest and announces it.</summary>
@@ -211,8 +218,24 @@ public static class Encounters
         {
             var first = kind.First();
             string count = kind.Count() > 1 ? $" x{kind.Count()}" : "";
-            Ui.Line($"  ▸ {Bestiary.Create(first.Id).Name}{count} (level {first.Level})", ConsoleColor.Red);
+            Ui.Line($"  ▸ {Bestiary.Exact(first.Id).Name}{count} (level {first.Level})", ConsoleColor.Red);
             Ui.Note("    " + first.Description);
+        }
+        foreach (var strong in enemies.Where(e => e.Rank != EnemyRank.Normal))
+        {
+            if (strong.Rank == EnemyRank.Elite)
+                Ui.Line($"  ☠ {strong.Name} is an ELITE — far stronger than its kind ({strong.MaxHealth:0} health). Big rewards if you win.{((options?.CanFlee ?? true) ? " There is no shame in fleeing." : "")}", ConsoleColor.Magenta);
+            else
+                Ui.Line($"  ▲ {strong.Name} is a veteran — tougher than the rest.", ConsoleColor.Yellow);
+        }
+        if (enemies.Any(e => e.Rank == EnemyRank.Elite)) Game.World.Add("elites_met");
+        options ??= new BattleOptions();
+        if (Contracts.Done(Contracts.WingsOverTheThrone)) options.BurnResistance = 0.5;
+        if (Contracts.Done(Contracts.InquisitorsLedger))
+        {
+            var warded = enemies.Where(e => e.Tags.Contains("court")).ToList();
+            foreach (var enemy in warded) enemy.TakeDamage(Math.Round(enemy.MaxHealth * 0.15));
+            if (warded.Count > 0) Ui.World("You know the Court's ward-sigils from the Inquisitor's ledger. Their protections are already unravelling.");
         }
         Ui.Pause("Press ENTER to fight...");
 
@@ -292,20 +315,40 @@ public static class Encounters
         Game.World.Log($"{hero.Name} was beaten and carried back to Cinder's Rest.");
     }
 
-    /// <summary>A level-appropriate pack outside Cinder's Rest.</summary>
+    /// <summary>Extra elite chance on ground the hero has outgrown, so high levels stay dangerous.</summary>
+    private static double EliteBonus(int level) => level >= 11 ? 0.14 : level >= 8 ? 0.05 : 0;
+
+    private static List<Enemy> PickWild(int level, List<string[]> groups) =>
+        Bestiary.Wild(EliteBonus(level), Rng.Pick(groups));
+
+    /// <summary>A level-appropriate group outside Cinder's Rest: scavengers, goblins, boars.</summary>
     public static List<Enemy> ScavengerPack(int level)
     {
-        if (level <= 1) return Bestiary.Group(Bestiary.AshScavenger, Bestiary.AshScavenger);
-        if (level == 2)
-            return Rng.Chance(0.5)
-                ? Bestiary.Group(Bestiary.AshScavenger, Bestiary.AshScavenger)
-                : Bestiary.Group(Bestiary.AshScavenger, Bestiary.AshScavenger, Bestiary.AshScavenger);
-        return Rng.Chance(0.5)
-            ? Bestiary.Group(Bestiary.AshScavenger, Bestiary.AshScavenger, Bestiary.AshScavenger)
-            : Bestiary.Group(Bestiary.ScavengerAlpha, Bestiary.AshScavenger, Bestiary.AshScavenger);
+        var groups = new List<string[]> { new[] { Bestiary.AshScavenger, Bestiary.AshScavenger } };
+        if (level >= 2)
+        {
+            groups.Add(new[] { Bestiary.AshScavenger, Bestiary.AshScavenger, Bestiary.AshScavenger });
+            groups.Add(new[] { Bestiary.CinderGoblin, Bestiary.CinderGoblin });
+            groups.Add(new[] { Bestiary.CinderGoblin, Bestiary.GoblinSlinger });
+        }
+        if (level >= 3)
+        {
+            groups.RemoveAt(0);
+            groups.Add(new[] { Bestiary.ScavengerAlpha, Bestiary.AshScavenger, Bestiary.AshScavenger });
+            groups.Add(new[] { Bestiary.CinderGoblin, Bestiary.GoblinSlinger, Bestiary.CinderGoblin });
+            groups.Add(new[] { Bestiary.AshbackBoar });
+        }
+        if (level >= 4) groups.Add(new[] { Bestiary.GoblinShaman, Bestiary.CinderGoblin });
+        if (level >= 6)
+        {
+            groups.Add(new[] { Bestiary.AshbackBoar, Bestiary.AshbackBoar });
+            groups.Add(new[] { Bestiary.GoblinShaman, Bestiary.CinderGoblin, Bestiary.GoblinSlinger, Bestiary.CinderGoblin });
+        }
+        if (level >= 8) groups.Add(new[] { Bestiary.EmberHound, Bestiary.EmberHound });
+        return PickWild(level, groups);
     }
 
-    /// <summary>A level-appropriate bandit group on the Scorched Path.</summary>
+    /// <summary>A level-appropriate group on the Scorched Path.</summary>
     public static List<Enemy> BanditGroup(int level)
     {
         var groups = new List<string[]>
@@ -314,10 +357,13 @@ public static class Encounters
             new[] { Bestiary.Bandit, Bestiary.BanditBowman },
         };
         if (level <= 2) groups.Add(new[] { Bestiary.Bandit });
+        if (level >= 3) groups.Add(new[] { Bestiary.AshbackBoar });
         if (level >= 4) groups.Add(new[] { Bestiary.Bandit, Bestiary.BanditBowman, Bestiary.Bandit });
         if (level >= 5) groups.Add(new[] { Bestiary.BanditEnforcer, Bestiary.Bandit });
+        if (level >= 6) groups.Add(new[] { Bestiary.BanditCutthroat, Bestiary.BanditBowman });
         if (level >= 7) groups.Add(new[] { Bestiary.BanditEnforcer, Bestiary.BanditBowman, Bestiary.Bandit });
-        return Bestiary.Group(Rng.Pick(groups));
+        if (level >= 9) groups.Add(new[] { Bestiary.BanditCutthroat, Bestiary.BanditEnforcer, Bestiary.BanditCutthroat });
+        return PickWild(level, groups);
     }
 
     /// <summary>A level-appropriate group around the ruins.</summary>
@@ -328,10 +374,40 @@ public static class Encounters
             new[] { Bestiary.EmberSprite },
             new[] { Bestiary.EmberSprite, Bestiary.EmberSprite },
         };
-        if (level >= 5) groups.Add(new[] { Bestiary.EmberSprite, Bestiary.EmberSprite, Bestiary.EmberSprite });
-        if (level >= 6) groups.Add(new[] { Bestiary.AshWraith });
-        if (level >= 7) groups.Add(new[] { Bestiary.AshWraith, Bestiary.EmberSprite });
-        return Bestiary.Group(Rng.Pick(groups));
+        if (level >= 5)
+        {
+            groups.Add(new[] { Bestiary.EmberSprite, Bestiary.EmberSprite, Bestiary.EmberSprite });
+            groups.Add(new[] { Bestiary.SlagBeetle });
+            groups.Add(new[] { Bestiary.SlagBeetle, Bestiary.EmberSprite });
+        }
+        if (level >= 6)
+        {
+            groups.Add(new[] { Bestiary.AshWraith });
+            groups.Add(new[] { Bestiary.EmberHound });
+        }
+        if (level >= 7)
+        {
+            groups.Add(new[] { Bestiary.AshWraith, Bestiary.EmberSprite });
+            groups.Add(new[] { Bestiary.EmberHound, Bestiary.EmberHound });
+        }
+        if (level >= 8) groups.Add(new[] { Bestiary.RuinGolem });
+        if (level >= 10) groups.Add(new[] { Bestiary.RuinGolem, Bestiary.SlagBeetle });
+        return PickWild(level, groups);
+    }
+
+    /// <summary>Whatever still walks the plateau of the Ashen Throne.</summary>
+    public static List<Enemy> PlateauGroup(int level)
+    {
+        var groups = new List<string[]>
+        {
+            new[] { Bestiary.CourtSentinel },
+            new[] { Bestiary.AshWraith, Bestiary.AshWraith },
+            new[] { Bestiary.RuinGolem },
+            new[] { Bestiary.EmberHound, Bestiary.EmberHound, Bestiary.EmberHound },
+        };
+        if (level >= 10) groups.Add(new[] { Bestiary.CourtInquisitor, Bestiary.CourtSentinel });
+        if (level >= 12) groups.Add(new[] { Bestiary.CourtInquisitor, Bestiary.RuinGolem });
+        return PickWild(level, groups);
     }
 }
 
@@ -357,13 +433,17 @@ public static class Prices
     {
         double price = value * TierDiscount;
         if (Game.Hero is Archer && Game.Tier == ReputationTier.Stranger) price *= 1.15;
+        if (Contracts.Done(Contracts.BlackGullyBoar)) price *= 0.9;
         return Math.Max(1, (int)Math.Round(price));
     }
 
     /// <summary>What the Dustfall Inn charges for supplies.</summary>
-    public static int Supplies(int value)
+    /// <param name="value">Base price.</param>
+    /// <param name="supplyId">The supply being priced, when known.</param>
+    public static int Supplies(int value, string? supplyId = null)
     {
         double price = value * TierDiscount * (RoadIsOpen ? 0.85 : 1.0);
+        if (supplyId is Items.SupplyCatalog.EmberSalve or Items.SupplyCatalog.ManaDraught && Contracts.Done(Contracts.RestlessSpring)) price *= 0.5;
         return Math.Max(1, (int)Math.Round(price));
     }
 

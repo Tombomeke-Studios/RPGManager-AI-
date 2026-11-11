@@ -10,7 +10,13 @@ public enum EnemyBehavior { Aggressive, Defensive, Random }
 /// <summary>
 /// A once-per-fight trick or boss script the battle loop knows how to run.
 /// </summary>
-public enum EnemyTrait { None, HealOnce, PhaseOnce, CallReinforcement, Thresh, CinderHand }
+public enum EnemyTrait { None, HealOnce, PhaseOnce, CallReinforcement, Thresh, CinderHand, Breath }
+
+/// <summary>
+/// How dangerous this particular individual is compared to its kind.
+/// Any wild enemy can turn out to be a Veteran or an Elite — even at level 1.
+/// </summary>
+public enum EnemyRank { Normal, Veteran, Elite }
 
 /// <summary>
 /// One possible drop: an item id and the chance it drops.
@@ -27,16 +33,17 @@ public class Enemy : ICombatant
     public string Name { get; set; } = "";
     public string Description { get; init; } = "";
     public int Level { get; init; } = 1;
-    public double MaxHealth { get; init; }
+    public double MaxHealth { get; set; }
+    public EnemyRank Rank { get; set; } = EnemyRank.Normal;
     public double Health { get; private set; }
-    public double Attack { get; init; }
-    public int Guard { get; init; }
+    public double Attack { get; set; }
+    public int Guard { get; set; }
     public Element AttackElement { get; init; } = Element.NONE;
     public EnemyBehavior Behavior { get; init; } = EnemyBehavior.Aggressive;
     public EnemyTrait Trait { get; init; } = EnemyTrait.None;
-    public int Xp { get; init; }
-    public int GoldMin { get; init; }
-    public int GoldMax { get; init; }
+    public int Xp { get; set; }
+    public int GoldMin { get; set; }
+    public int GoldMax { get; set; }
 
     /// <summary>Counter key used by kill quests ("bandit" covers every bandit variant).</summary>
     public string KillTag { get; init; } = "";

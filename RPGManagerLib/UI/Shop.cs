@@ -124,13 +124,13 @@ public static class Shop
 
             var stock = stockIds.Select(SupplyCatalog.Get).ToList();
             var options = stock.Select(s =>
-                $"{Prices.Supplies(s.Price),4}g  {s.Name} — {s.Description} (you have {hero.SupplyCount(s.Id)})").ToList();
+                $"{Prices.Supplies(s.Price, s.Id),4}g  {s.Name} — {s.Description} (you have {hero.SupplyCount(s.Id)})").ToList();
 
             int choice = Ui.Choose(options, "Back");
             if (choice < 0) return;
 
             var chosen = stock[choice];
-            int cost = Prices.Supplies(chosen.Price);
+            int cost = Prices.Supplies(chosen.Price, chosen.Id);
             if (hero.Gold < cost)
             {
                 Ui.Bad("You can't afford that.");
@@ -220,11 +220,13 @@ public static class Shop
 
     private static (int Gold, int Scraps, bool Allowed, string Why) ReforgeCost(Weapon weapon)
     {
+        // With the Door-Warden's core in the forge, Korin needs no Scraps.
+        int scale = Contracts.Done(Contracts.SleepingWarden) ? 0 : 1;
         return weapon.Rarity switch
         {
-            Rarity.COMMON => (Prices.Smithy(90), 4, true, ""),
-            Rarity.UNCOMMON => (Prices.Smithy(220), 8, Game.Tier >= ReputationTier.Known, "Korin only does this for people he knows"),
-            Rarity.RARE => (Prices.Smithy(480), 12, Game.Tier >= ReputationTier.Honored, "Korin only does this for the Honored"),
+            Rarity.COMMON => (Prices.Smithy(90), 4 * scale, true, ""),
+            Rarity.UNCOMMON => (Prices.Smithy(220), 8 * scale, Game.Tier >= ReputationTier.Known, "Korin only does this for people he knows"),
+            Rarity.RARE => (Prices.Smithy(480), 12 * scale, Game.Tier >= ReputationTier.Honored, "Korin only does this for the Honored"),
             _ => (0, 0, false, "")
         };
     }

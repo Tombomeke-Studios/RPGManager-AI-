@@ -18,7 +18,7 @@ Developer switches:
 | `RPGMANAGER_SEED=7` | Fixed random seed, for reproducible runs |
 | `RPGMANAGER_AUTOBATTLE=1` | The bot fights for you (used for scripted playtests) |
 
-A full run of the main story takes roughly 25–30 fights and ends around level 9.
+A full run of the main story takes roughly 25–35 fights and ends around level 9. The level cap is 15; class postings, elites and the plateau carry you past the story.
 
 ## What is in the build
 
@@ -26,7 +26,7 @@ A full run of the main story takes roughly 25–30 fights and ends around level 
 |---|---|---|
 | Combat | `Combat/` | Turn-based, hero vs. group. Status effects on one shared list, ticked once per round. Enemy behaviour enum + once-per-fight traits. Bosses telegraph heavy attacks a turn ahead. |
 | Class skills | `Combat/Skill.cs` | Skills describe intent; `Battle` resolves it. Warrior spends **Fury** (builds in the fight), Mage spends **Mana** (carries between fights), Archer spends **Arrows** (per-fight budget = quiver size). |
-| Levelling | `Characters/Heroes/` | XP table as an array, abstract `OnLevelUp()` per class, four stats: Might, Guard, Arcana, Perception. Cap 10. |
+| Levelling | `Characters/Heroes/` | XP table as an array, abstract `OnLevelUp()` per class, four stats plus Vitality, 2 stat points per level to spend. Cap 15. |
 | Roster | `CharacterRoster` | Slot rules as a dictionary. New heroes start two levels under your strongest. |
 | World state | `Worlds/WorldState.cs` | Flags, counters, reputation (tier computed), capped chronicle, the shared vault, and **who** set each flag. |
 | Quests | `Quests/` | `Quest` is data, `QuestLog` owns state, objectives are small classes. Progress lives in world counters. |
@@ -78,9 +78,69 @@ All of it is optional to keep. The first two only need the tent documents change
 | Take / leave the Focus | Taken: the boss's mid-fight power-up fails and she is Exposed. Left: she heals and hits harder |
 | Sit / walk away | Sit: +3 main stat, −15 health, and the memory. Walk away: reputation |
 
+## Second pass: what was added after the first PR review
+
+### The world talks about your other heroes
+
+`Adventure/Gossip.cs`. Every deed already records which hero did it. Now NPCs and places bring it up when a *different* hero walks in:
+
+> **Sera:** "There was a mage through here not long ago — Vex. Broke the toll on the Path and barely mentioned it. One of yours, I'd bet my good leg."
+
+- A rumour is three things: the world flag, who says it, and the line (`{name}` and `{class}` are filled in).
+- Each hero hears each rumour once (tracked in world counters), so it reads as news, not a loop.
+- Speakers: Sera, Korin, Lira, Dren, Thresh, and the four locations themselves ("Fresh bootprints lead down into the academy... A warrior passed here not long ago: Brak.").
+- About 35 rumours cover the main story; every class posting adds one more.
+
+*Why a table instead of writing it into each conversation:* adding a reaction to a new deed is one line of data, and no dialogue code has to change.
+
+### Postings that need one particular class
+
+`Adventure/Contracts.cs`, on a second board at the Dustfall Inn. Nine postings, three per class, graded Easy / Hard / Deadly. A hero of the wrong class can read them but not take them — the board tells you which of your heroes could.
+
+Each one is two fights with a stat check before the last (pass it and the enemy starts Exposed), and each one **changes something for every hero**:
+
+| Class | Posting | Level | What it changes for everyone |
+|---|---|---|---|
+| Warrior | Hold the Gate | 2+ | Resting at the inn is free |
+| Warrior | Old Ironside | 5+ | Korin's prices drop 10% |
+| Warrior | The Sleeping Warden | 9+ | Reforging needs no Scraps |
+| Mage | The Restless Spring | 2+ | Ember Salve and Mana Draught half price |
+| Mage | The Unfinished Lecture | 6+ | Free coldfire tempering; safer road to the ruins |
+| Mage | The Inquisitor's Ledger | 10+ | Court soldiers start every fight at −15% health |
+| Archer | Eyes on the Road | 2+ | Ambushes near town and the Path half as likely |
+| Archer | The Paymaster | 6+ | Bounties pay 50% more |
+| Archer | Wings over the Throne | 11+ | Burn chance against your heroes halved |
+
+Contracts are data (a `Contract` object with stages); adding a tenth is adding one entry.
+
+### No two enemies alike, and some are far worse
+
+`Combat/Bestiary.cs`.
+
+- Every enemy rolls its own health (±15%) and attack (±10%).
+- In random encounters any enemy can be a **Hardened** veteran (14%) or a **Dread** elite (5%, more on ground you have outgrown). An elite has 2.4× health and 1.5× attack, triple XP, and guaranteed loot. They can appear at level 1 — the game warns you and you can flee.
+- Story fights use `Bestiary.Group` (variation only); random ones use `Bestiary.Wild` (variation + ranks).
+- Ten new enemies: Cinder Goblin, Goblin Slinger, Goblin Shaman, Ashback Boar, Bandit Cutthroat, Slag Beetle, Ember Hound, Ruin Golem, Court Inquisitor, Ash Drake.
+- Two constants, `HealthScale` and `AttackScale`, are the global difficulty dials.
+
+### Level 15 and stat points
+
+- Level cap raised from 10 to 15, with one new skill per class at level 11.
+- Each level-up gives a small automatic class bonus **and 2 stat points** you spend yourself: Might, Guard, Arcana, Perception, or Vitality (+8 health).
+- Points matter outside combat too: the ruins need Might 15 or Perception 12, and every posting has its own check.
+- A newly bonded hero arrives with unspent points for their catch-up levels.
+
+### Lore added in this pass
+
+- **Cinder goblins** are descended from the academy's kiln-servants. Nobody told them the job ended.
+- **Magister Oren** has given the same lecture for two hundred years because nobody ever answered his last question.
+- **The Door-Warden** was built by mages to keep out mages, which is why it takes a Warrior.
+- **Court Inquisitors** are the Court's field scholars: they catalogue what the Sentinels kill, and write down every ward the Court uses.
+- **The Ash Drake** nests in the dead dragon's ribcage.
+
 ## Things I would look at next
 
-- Balance is on the forgiving side. No scripted run lost a fight. Raising enemy attack ~15% in `Bestiary.cs` would make potions matter more.
+- Balance was tuned with a bot, not a person. Bosses now cost three or four potions and scripted runs lose a few fights. If it feels wrong, change `HealthScale` / `AttackScale` in `Bestiary.cs` first.
 - Gold piles up late; there is not enough to spend it on.
 - Armour does not exist as an item (only the Warrior's Dragonshard relic), and weapon durability is still unused.
 - Dialogue trees are code. They are now stable enough to see what a data format would need.

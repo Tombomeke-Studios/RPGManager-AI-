@@ -31,11 +31,12 @@ public static class EmberveilRuinsLocation
         if (Game.Has(WorldFlags.EmberSealBroken)) description += " Far below, a door that was shut for two hundred years stands open, and the whole ruin feels like it is holding its breath.";
 
         LocationMenu.Banner("Emberveil Ruins", description);
+        Gossip.Tell(Gossip.Ruins, 1);
 
         var options = new List<MenuOption>
         {
             new("1", "Lira's camp", "the hermit at the ruin's edge", Lira.Visit),
-            new("2", "Search the outer vents", "Ember Sprites (levels 3–6)", Vents),
+            new("2", "Search the outer vents", "sprites, beetles, hounds and worse (levels 3–12)", Vents),
         };
         if (QuestLog.Started(QuestLog.EchoesInTheRuins))
             options.Add(new MenuOption("3", "Descend into the academy", Game.Has(WorldFlags.EmberSealBroken) ? "the way down is known" : "quest: Echoes in the Ruins (recommended level 5+)", Descend));
@@ -46,7 +47,7 @@ public static class EmberveilRuinsLocation
     {
         Encounters.Fight("The Outer Vents",
             "Heat-shimmer over cracked black rock. Then one of the shimmers turns to look at you.",
-            Encounters.RuinsGroup(Math.Min(Game.Hero.Level, 5)));
+            Encounters.RuinsGroup(Game.Hero.Level));
     }
 
     // ------------------------------------------------------------------ the descent
@@ -357,7 +358,7 @@ public static class Lira
         }
 
         var tree = new DialogueTree();
-        tree.Add(new DialogueNode("hub", () => Ui.Say("Lira", HubLine()),
+        tree.Add(new DialogueNode("hub", () => { Ui.Say("Lira", HubLine()); Gossip.Tell(Gossip.Lira); },
             new DialogueOption("\"What's under the academy?\"", "quest") { Condition = () => !QuestLog.Started(QuestLog.EchoesInTheRuins) },
             new DialogueOption("\"I reached the sealed chamber.\"", "chamber") { Condition = () => QuestLog.ObjectivesMet(QuestLog.EchoesInTheRuins) },
             new DialogueOption("\"Teach me the counter-spell.\"", "teach") { Condition = () => hero is Mage && QuestLog.Started(QuestLog.EchoesInTheRuins) && !hero.LearnedSkills.Contains(SkillBook.Unbinding) },
@@ -518,14 +519,16 @@ public static class Lira
 
         var candidates = hero.Weapons.OfType<Weapon>().Where(w => w.Type != WeaponType.STAFF && w.Element == Element.NONE).ToList();
         int essence = hero.SupplyCount(SupplyCatalog.FireEssence);
-        Ui.Note($"  (Coldfire tempering: 3 Fire Essence. You have {essence}. A coldfire weapon deals ice damage — strong against sprites and wraiths, and it ignores a wraith's resistance to plain steel.)");
-        if (essence < 3 || candidates.Count == 0) return;
+        int needed = Contracts.Done(Contracts.UnfinishedLecture) ? 0 : 3;
+        if (needed == 0) Ui.World("For what your Keeper's mage did for Magister Oren, Lira tempers coldfire for nothing.");
+        Ui.Note($"  (Coldfire tempering: {needed} Fire Essence. You have {essence}. A coldfire weapon deals ice damage — strong against sprites and wraiths, and it ignores a wraith's resistance to plain steel.)");
+        if (essence < needed || candidates.Count == 0) return;
         if (!Ui.Confirm("Have a weapon tempered now?")) return;
 
         int choice = Ui.Choose(candidates.Select(ItemForge.Describe).ToList(), "Never mind");
         if (choice < 0) return;
         var weapon = candidates[choice];
-        hero.UseSupply(SupplyCatalog.FireEssence, 3);
+        if (needed > 0) hero.UseSupply(SupplyCatalog.FireEssence, needed);
         weapon.Element = Element.ICE;
         if (!weapon.Name.StartsWith("Coldfire ")) weapon.Name = "Coldfire " + weapon.Name;
         Ui.Narrate("She cups the embers in her bare hands and breathes on them — in, not out. The glow turns blue, then white, then is somehow darker than the air around it. When she runs her thumb down the weapon, frost follows.");

@@ -35,8 +35,62 @@ public class GameSystemsTests : IDisposable
 
         Assert.Equal(2, gained);
         Assert.Equal(3, warrior.Level);
-        Assert.Equal(might + 4, warrior.Might);
+        Assert.Equal(might + 2, warrior.Might);
+        Assert.Equal(2 * Character.PointsPerLevel, warrior.UnspentPoints);
         Assert.Equal(warrior.MaxHealth, warrior.Health);
+    }
+
+    [Fact]
+    public void SpendPoint_RaisesChosenStatAndUsesUpPoints()
+    {
+        var archer = new Archer("Wren");
+        archer.SetLevel(2);
+        int perception = archer.Perception;
+        double health = archer.MaxHealth;
+
+        Assert.True(archer.SpendPoint(HeroStat.Perception));
+        Assert.True(archer.SpendPoint(HeroStat.Vitality));
+        Assert.False(archer.SpendPoint(HeroStat.Might));
+
+        Assert.Equal(perception + 1, archer.Perception);
+        Assert.Equal(health + Character.HealthPerVitality, archer.MaxHealth);
+        Assert.Equal(0, archer.UnspentPoints);
+    }
+
+    [Fact]
+    public void Bestiary_IndividualsVaryButStayNearTheirTemplate()
+    {
+        var template = Bestiary.Exact(Bestiary.Bandit);
+        var healths = Enumerable.Range(0, 40).Select(_ => Bestiary.Create(Bestiary.Bandit).MaxHealth).ToList();
+
+        Assert.True(healths.Distinct().Count() > 3);
+        Assert.All(healths, h => Assert.InRange(h, template.MaxHealth * 0.84, template.MaxHealth * 1.16));
+    }
+
+    [Fact]
+    public void Bestiary_EliteIsMuchStrongerAndWorthMore()
+    {
+        var normal = Bestiary.Exact(Bestiary.CinderGoblin);
+        var elite = Bestiary.Exact(Bestiary.CinderGoblin);
+        Bestiary.Promote(elite, EnemyRank.Elite);
+
+        Assert.Equal(EnemyRank.Elite, elite.Rank);
+        Assert.Equal(Math.Round(normal.MaxHealth * Bestiary.EliteHealth), elite.MaxHealth);
+        Assert.Equal(elite.MaxHealth, elite.Health);
+        Assert.True(elite.Attack > normal.Attack);
+        Assert.Equal(normal.Xp * 3, elite.Xp);
+        Assert.StartsWith("Dread", elite.Name);
+    }
+
+    [Fact]
+    public void Bestiary_WildGroupsSometimesContainVeteransOrElites()
+    {
+        int strong = Enumerable.Range(0, 300)
+            .SelectMany(_ => Bestiary.Wild(Bestiary.AshScavenger, Bestiary.AshScavenger))
+            .Count(e => e.Rank != EnemyRank.Normal);
+
+        Assert.InRange(strong, 40, 200);
+        Assert.All(Bestiary.Group(Bestiary.AshScavenger, Bestiary.AshScavenger, Bestiary.AshScavenger), e => Assert.Equal(EnemyRank.Normal, e.Rank));
     }
 
     [Fact]

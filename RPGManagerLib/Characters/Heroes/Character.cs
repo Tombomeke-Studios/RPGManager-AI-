@@ -1,4 +1,4 @@
-﻿using RPGManagerLib.Combat;
+using RPGManagerLib.Combat;
 using RPGManagerLib.Exceptions;
 using RPGManagerLib.Items;
 using RPGManagerLib.Items.Weapons;
@@ -6,6 +6,11 @@ using RPGManagerLib.Worlds;
 
 namespace RPGManagerLib.Characters.Heroes
 {
+    /// <summary>
+    /// The things a stat point can be spent on.
+    /// </summary>
+    public enum HeroStat { Might, Guard, Arcana, Perception, Vitality }
+
     /// <summary>
     /// A hero bonded to the Keeper: name, vitals, stats, level, equipment and supplies.
     /// </summary>
@@ -16,13 +21,19 @@ namespace RPGManagerLib.Characters.Heroes
     public abstract class Character : ICombatant
     {
         /// <summary>Highest level reachable in the Ashlands.</summary>
-        public const int MaxLevel = 10;
+        public const int MaxLevel = 15;
+
+        /// <summary>Stat points earned on every level-up, for the player to spend.</summary>
+        public const int PointsPerLevel = 2;
+
+        /// <summary>Health gained per point put into Vitality.</summary>
+        public const int HealthPerVitality = 8;
 
         /// <summary>Total inventory slots (small items take 1, large items take 2).</summary>
         public const int InventoryCapacity = 10;
 
         /// <summary>XP needed to go from level [index] to the next. Tune each step independently.</summary>
-        public static readonly int[] XpToNextLevel = { 0, 60, 130, 220, 330, 460, 620, 800, 1000, 1250 };
+        public static readonly int[] XpToNextLevel = { 0, 60, 130, 220, 330, 460, 620, 800, 1000, 1250, 1500, 1800, 2150, 2550, 3000 };
 
         /// <summary>Current health.</summary>
         public double Health { get; internal set; }
@@ -60,7 +71,10 @@ namespace RPGManagerLib.Characters.Heroes
         /// <summary>Sharpness: bow damage, critical hits, escaping, noticing things.</summary>
         public int Perception { get; set; }
 
-        /// <summary>Permanent health gained from boons and relics.</summary>
+        /// <summary>Stat points waiting to be spent.</summary>
+        public int UnspentPoints { get; set; }
+
+        /// <summary>Permanent health gained from Vitality, boons and relics.</summary>
         public double BonusMaxHealth { get; set; }
 
         /// <summary>Everything the hero carries that can be equipped.</summary>
@@ -207,6 +221,37 @@ namespace RPGManagerLib.Characters.Heroes
             Level++;
             PowerLevel = Level;
             OnLevelUp();
+            UnspentPoints += PointsPerLevel;
+        }
+
+        /// <summary>The order this class spends points in when the game chooses for it.</summary>
+        protected abstract HeroStat[] DefaultBuild { get; }
+
+        /// <summary>Spends one stat point on the chosen stat.</summary>
+        /// <returns>False when there are no points left.</returns>
+        public bool SpendPoint(HeroStat stat)
+        {
+            if (UnspentPoints <= 0) return false;
+            UnspentPoints--;
+            switch (stat)
+            {
+                case HeroStat.Might: Might++; break;
+                case HeroStat.Guard: Guard++; break;
+                case HeroStat.Arcana: Arcana++; break;
+                case HeroStat.Perception: Perception++; break;
+                case HeroStat.Vitality:
+                    BonusMaxHealth += HealthPerVitality;
+                    Health += HealthPerVitality;
+                    break;
+            }
+            return true;
+        }
+
+        /// <summary>Spends every waiting point following the class's default build.</summary>
+        public void AutoSpendPoints()
+        {
+            int i = Level;
+            while (UnspentPoints > 0) SpendPoint(DefaultBuild[i++ % DefaultBuild.Length]);
         }
 
         /// <summary>Full health and mana.</summary>

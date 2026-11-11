@@ -26,6 +26,7 @@ public static class AshenThroneLocation
         else description += " Lantern-light moves among tents near the summit. Black and gold.";
 
         LocationMenu.Banner("The Ashen Throne", description);
+        Gossip.Tell(Gossip.Throne, 1);
 
         var options = new List<MenuOption>();
         if (!Game.Has(WorldFlags.CinderHandDefeated))
@@ -34,9 +35,9 @@ public static class AshenThroneLocation
         {
             if (!Game.Has(WorldFlags.AshenThroneSat) && !Game.Has(WorldFlags.AshenThroneRefused))
                 options.Add(new MenuOption("1", "Approach the throne", "the seat between the dragon's claws", ThroneChoice));
-            options.Add(new MenuOption("2", "Hunt the plateau", "wraiths and Court stragglers (levels 7–10)", () =>
+            options.Add(new MenuOption("2", "Hunt the plateau", "wraiths, golems and Court stragglers (levels 8–15)", () =>
                 Encounters.Fight("The Plateau", "Not everything up here left when the Hand fell.",
-                    Core.Rng.Chance(0.5) ? Bestiary.Group(Bestiary.CourtSentinel) : Bestiary.Group(Bestiary.AshWraith, Bestiary.AshWraith))));
+                    Encounters.PlateauGroup(Game.Hero.Level))));
         }
         return LocationMenu.Show(options);
     }

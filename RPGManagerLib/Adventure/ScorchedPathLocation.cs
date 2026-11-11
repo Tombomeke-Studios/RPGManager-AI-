@@ -28,6 +28,7 @@ public static class ScorchedPathLocation
         else if (Game.Has(WorldFlags.ScorchedPathPatrolCleared)) description += " The toll-barricade lies in pieces where it was broken. Up on the north ridge, watch-fires still burn.";
 
         LocationMenu.Banner("The Scorched Path", description);
+        Gossip.Tell(Gossip.Path, 1);
 
         var options = new List<MenuOption>();
         int key = 1;
@@ -59,7 +60,7 @@ public static class ScorchedPathLocation
         {
             Encounters.Fight("The Scorched Path",
                 "With Thresh gone the road belongs to whoever is hungriest. Today that is not you.",
-                Core.Rng.Chance(0.5) ? Encounters.ScavengerPack(3) : Bestiary.Group(Bestiary.Bandit, Bestiary.BanditBowman));
+                Core.Rng.Chance(0.5) ? Encounters.ScavengerPack(hero.Level) : Bestiary.Wild(Bestiary.Bandit, Bestiary.BanditBowman));
             return;
         }
         Encounters.Fight("The Scorched Path",
@@ -415,6 +416,7 @@ public static class ScorchedPathLocation
     {
         Ui.Header("The Ridge");
         Ui.Narrate("The camp is smaller now and better hidden. Thresh keeps a fire that makes no smoke.");
+        Gossip.Tell(Gossip.Thresh);
         if (Game.Has(WorldFlags.CinderHandDefeated))
             Ui.Say("Thresh", "The Hand's dead, then. Good. There'll be another — there's always another with people like that. But not this season. Sit. I've got something that's nearly tea.");
         else if (Game.Has(WorldFlags.ThreshSaved))

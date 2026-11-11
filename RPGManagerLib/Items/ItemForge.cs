@@ -61,6 +61,11 @@ public static class ItemForge
         "thronewing_bow" => Custom(new HuntingBow(), "Throne-wing Bow", 19, Rarity.EPIC),
         "hollow_scepter" => Custom(new BasicStaff(), "Hollow Scepter", 11, Rarity.EPIC, Element.LIGHTNING),
 
+        // Class contract rewards
+        "wardens_maul" => Custom(new BasicAxe(), "Warden's Maul", 25, Rarity.EPIC),
+        "inquisitors_rod" => Custom(new BasicStaff(), "Inquisitor's Rod", 12, Rarity.EPIC, Element.ICE),
+        "drakebone_bow" => Custom(new HuntingBow(), "Drakebone Bow", 23, Rarity.EPIC),
+
         _ => throw new ArgumentException($"Unknown item id: {id}")
     };
 

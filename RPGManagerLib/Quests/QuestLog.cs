@@ -19,6 +19,7 @@ public static class QuestLog
     public const string WhatTheAcademyKnew = "what_the_academy_knew";
     public const string HollowReprisal = "hollow_reprisal";
     public const string BountyScavengers = "bounty_scavengers";
+    public const string BountyGoblins = "bounty_goblins";
     public const string BountyBandits = "bounty_bandits";
     public const string BountySprites = "bounty_sprites";
 
@@ -99,6 +100,13 @@ public static class QuestLog
             Summary = "Standing bounty on Ash Scavengers.",
             Objectives = { new KillObjective("scavenger", 4, "Kill Ash Scavengers") },
             Gold = 30, Xp = 40, Reputation = 2, Repeatable = true
+        },
+        new()
+        {
+            Id = BountyGoblins, Title = "Bounty: Kiln Rats", Giver = "Bounty board", TurnIn = "the bounty board at the Dustfall Inn",
+            Summary = "Standing bounty on Cinder Goblins.",
+            Objectives = { new KillObjective("goblin", 4, "Kill Cinder Goblins") },
+            Gold = 45, Xp = 55, Reputation = 2, Repeatable = true
         },
         new()
         {

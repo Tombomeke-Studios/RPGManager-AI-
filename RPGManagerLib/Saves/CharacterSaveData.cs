@@ -56,6 +56,7 @@ namespace RPGManagerLib.Saves
         public int Arcana { get; set; }
         public int Perception { get; set; }
         public double BonusMaxHealth { get; set; }
+        public int UnspentPoints { get; set; }
 
         /// <summary>Index of the chosen weapon inside <see cref="Equipables"/>, or -1.</summary>
         public int EquippedIndex { get; set; } = -1;
@@ -86,6 +87,7 @@ namespace RPGManagerLib.Saves
             Arcana = c.Arcana;
             Perception = c.Perception;
             BonusMaxHealth = c.BonusMaxHealth;
+            UnspentPoints = c.UnspentPoints;
             Supplies = new Dictionary<string, int>(c.Supplies);
             LearnedSkills = new List<string>(c.LearnedSkills);
             LocationId = c.LocationId;
@@ -131,6 +133,7 @@ namespace RPGManagerLib.Saves
                 c.Arcana = Arcana;
                 c.Perception = Perception;
                 c.BonusMaxHealth = BonusMaxHealth;
+                c.UnspentPoints = UnspentPoints;
             }
             else
             {

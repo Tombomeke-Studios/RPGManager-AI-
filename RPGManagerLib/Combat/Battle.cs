@@ -35,6 +35,9 @@ public class BattleOptions
     /// <summary>The Cinder Hand cannot draw on the Focus (the Keeper holds it).</summary>
     public bool FocusDenied { get; set; }
 
+    /// <summary>Multiplier on the chance that enemies set the hero burning.</summary>
+    public double BurnResistance { get; set; } = 1.0;
+
     /// <summary>Rounds the first enemy starts Exposed (a known weakness).</summary>
     public int OpeningExposedTurns { get; set; }
 }
@@ -280,7 +283,7 @@ public class Battle
             guaranteedCrit = false;
             return true;
         }
-        return Rng.Chance(0.05 + Hero.Perception * 0.015 + bonus);
+        return Rng.Chance(0.05 + Hero.Perception * 0.01 + bonus);
     }
 
     private void BasicAttack(Enemy target)
@@ -575,6 +578,17 @@ public class Battle
                 Say($"{enemy.Name} falls back a step and sounds a short, flat horn. Boots answer from the dark.", ConsoleColor.Red);
                 return true;
 
+            case EnemyTrait.Breath when enemy.Telegraphing:
+                enemy.Telegraphing = false;
+                Say($"{enemy.Name} exhales a river of fire!", ConsoleColor.Red);
+                EnemyAttack(enemy, 1.7, heavy: true, forceBurn: true);
+                return true;
+
+            case EnemyTrait.Breath when enemy.TurnCounter % 3 == 0:
+                enemy.Telegraphing = true;
+                Say($"! {enemy.Name} rears back, throat glowing like a furnace door. (Defend or Evade!)", ConsoleColor.Yellow);
+                return true;
+
             case EnemyTrait.Thresh:
                 return ThreshTurn(enemy, ratio);
 
@@ -683,7 +697,7 @@ public class Battle
         if (Hero is Warrior) Resource += 8;
         if (!Hero.IsAlive) return;
 
-        double burnChance = forceBurn ? 1.0 : enemy.BurnChance;
+        double burnChance = (forceBurn ? 1.0 : enemy.BurnChance) * Options.BurnResistance;
         if (burnChance > 0 && Rng.Chance(guarding ? burnChance * 0.5 : burnChance))
         {
             Hero.Apply(StatusType.Burn, 3, 3 + enemy.Level * 0.6);

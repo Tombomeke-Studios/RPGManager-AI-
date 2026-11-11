@@ -62,12 +62,13 @@ public static class CindersRestLocation
         else if (Game.Has(WorldFlags.AshlandsScavengerBounty)) description += " The gates stand open during the day now. Nobody thanks you. They just stop flinching.";
 
         LocationMenu.Banner("Cinder's Rest", description);
+        Gossip.Tell(Gossip.Town, 1);
 
         return LocationMenu.Show(new List<MenuOption>
         {
             new("1", "The Dustfall Inn", "Sera Voss — work, rest, supplies, the Keeper's Vault", Inn),
             new("2", "Ashwell's Smithy", "Korin Ashwell — weapons and forge work", Smithy),
-            new("3", "Hunt beyond the gates", "Ash Scavengers (levels 1–3)", Hunt),
+            new("3", "Hunt beyond the gates", "scavengers, goblins, boars (levels 1–8)", Hunt),
         });
     }
 
@@ -96,10 +97,11 @@ public static class CindersRestLocation
             var options = new List<MenuOption>
             {
                 new("1", "Talk to Sera", "work, news, questions", Sera.Talk),
-                new("2", "Rest", restCost == 0 ? "the stable is free" : $"{restCost} gold — full health and mana", Rest),
+                new("2", "Rest", Contracts.Done(Contracts.HoldTheGate) ? "free, for the Keeper's heroes" : restCost == 0 ? "the stable is free" : $"{restCost} gold — full health and mana", Rest),
                 new("3", "Buy supplies", "potions, salves, bombs", () => Shop.BuySupplies("Dustfall Supplies", SupplyStock())),
                 new("4", "Bounty board", "standing contracts", BountyBoard),
                 new("5", "Keeper's Vault", "share equipment between your heroes", HeroScreens.Vault),
+                new("p", "Special postings", "jobs that need one particular class — and change the world for all", Contracts.Board),
             };
             if (Game.Has(WorldFlags.DrenMorrowAllied)) options.Add(new MenuOption("6", "Talk to Dren", "the courier you saved", Dren.TalkAtInn));
             options.Add(new MenuOption("0", "Leave", "", () => leave = true));
@@ -117,6 +119,7 @@ public static class CindersRestLocation
 
     private static int RestCost()
     {
+        if (Contracts.Done(Contracts.HoldTheGate)) return 0;
         int cost = 4 + Game.Hero.Level * 2;
         return Game.Hero.Gold >= cost ? cost : 0;
     }
@@ -128,7 +131,9 @@ public static class CindersRestLocation
         hero.Gold -= cost;
         hero.RestoreFully();
         Ui.Line();
-        Ui.Narrate(cost > 0
+        Ui.Narrate(Contracts.Done(Contracts.HoldTheGate)
+            ? "\"Your coin's no good here,\" Sera says, and means it. The best bed, the thick blanket, and somebody has left a bowl of stew outside the door."
+            : cost > 0
             ? "A real bed, a bowl of something hot, and water from the spring that almost doesn't taste of eggs. You sleep like the dead and wake like the living."
             : "\"No coin? Stable's free. The mule doesn't snore much.\" The straw is warm, at least. You wake with ash in your hair and nothing broken.");
         Ui.Good($"{hero.Name} is fully restored.");
@@ -142,6 +147,7 @@ public static class CindersRestLocation
         Ui.Narrate("A plank by the door, bristling with nails. Most of the notices are in Sera's handwriting.");
 
         var bounties = new List<string> { QuestLog.BountyScavengers };
+        if (Game.Has(WorldFlags.AshlandsScavengerBounty)) bounties.Add(QuestLog.BountyGoblins);
         if (Game.Has(WorldFlags.ScorchedPathOpen)) bounties.Add(QuestLog.BountyBandits);
         if (QuestLog.Started(QuestLog.CommandersPrice)) bounties.Add(QuestLog.BountySprites);
 
@@ -292,6 +298,7 @@ public static class Sera
             Ui.Say("Sera", "There you are. People have started asking after you. I tell them you're taller.");
         else
             Ui.Say("Sera", "Still alive, then. What'll it be?");
+        Gossip.Tell(Gossip.Sera);
     }
 
     private static void Rumours()
@@ -521,6 +528,7 @@ public static class Korin
             Ui.Say("Korin", "Mage. Hm. I'll sell to you. Keep your hands where I can see them and your fire where I can't.");
         else
             Ui.Say("Korin", "If it's steel you want, it's on the wall. If it's talk, I'm busy.");
+        Gossip.Tell(Gossip.Korin);
     }
 }
 
@@ -544,6 +552,7 @@ public static class Dren
                     "Oh. It's you. Good. I mean — good. I still jump when the door opens. You'd think I'd stop.",
                     "Sit, sit. You people read, don't you? I've been wanting to tell someone who'd understand the half of it.",
                     "I didn't hear you come in. Nobody hears you come in. I'm choosing to find that reassuring."));
+            Gossip.Tell(Gossip.Dren);
         },
             new DialogueOption("\"Who were you working for?\"", "court"),
             new DialogueOption("\"What do they want in the ruins?\"", "ruins"),

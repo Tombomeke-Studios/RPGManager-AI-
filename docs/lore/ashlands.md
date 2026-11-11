@@ -261,7 +261,9 @@ This sets up the same pattern repeating in every subsequent region — the Court
 Details and reasoning live in [../ASHLANDS_BUILD_NOTES.md](../ASHLANDS_BUILD_NOTES.md). In short:
 
 - **The Cinder Hand** — the Court's handler in the Ashlands and Dren's abandoned contact. Final encounter at the Ashen Throne. Her gauntlet draws on the Emberveil Focus; if the Keeper holds the Focus, it fails her.
-- **Extra enemies** — Scavenger Alpha (pack leader) and Bandit Bowman.
+- **Extra enemies** — Scavenger Alpha, Bandit Bowman, Bandit Cutthroat, Cinder Goblin / Slinger / Shaman, Ashback Boar, Slag Beetle, Ember Hound, Ruin Golem, Court Inquisitor, Ash Drake. Any wild enemy can be a Hardened veteran or a Dread elite.
+- **Class postings** — nine class-only jobs on a second board at the Dustfall Inn, each with a permanent effect on the shared world.
+- **Gossip** — NPCs and places tell each hero what the Keeper's other heroes did.
 - **Coldfire** — Lira can turn three Fire Essence "inside out" to give a weapon ice damage. This is how non-mages deal with Ash Wraiths.
 - **Class caches** — each class's route into the sealed chamber leads to its own reward, claimable once per class per save, even after another hero broke the seal.
 - **Hollow Reprisal** — if Thresh becomes an ally, the Court sends Sentinels to silence him.
